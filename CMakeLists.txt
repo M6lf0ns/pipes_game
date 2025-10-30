@@ -9,4 +9,14 @@ add_subdirectory(extern/glfw)
 
 add_subdirectory(extern/glm)
 
+add_subdirectory(extern/box2d)
+
 add_subdirectory(game)
+
+add_subdirectory(extern/soloud)
+
+add_subdirectory(extern/tinygltf)
+
+
+
+
