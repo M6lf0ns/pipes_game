@@ -20,6 +20,7 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Missile.cpp
         src/entities/Missile.h
         src/physics/ContactListener.h
+
 )
 
 # set executable name
@@ -32,7 +33,7 @@ add_executable(${EXE_FILE} ${SOURCE_FILES})
 target_compile_features(${EXE_FILE} PRIVATE cxx_std_17)
 
 # link with dependencies
-target_link_libraries(${EXE_FILE} PRIVATE glad glfw glm soloud tinygltf box2d)  # <-- now also links glfw. The library names are separated by spaces.
+target_link_libraries(${EXE_FILE} PRIVATE glad glfw glm soloud tinygltf box2d winmm)  # <-- now also links glfw. The library names are separated by spaces.
 
 
 target_compile_definitions(${EXE_FILE} PRIVATE ASSET_ROOT=./assets/)

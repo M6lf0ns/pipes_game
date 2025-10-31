@@ -1,11 +1,11 @@
 #include "Game.h"
+#include <stdexcept>
+#include <random>
+#include <iostream>
 #include "entities/Planet.h"
 #include "entities/Enemy.h"
 #include "Assets.h"
 #include "physics/ContactListener.h"
-#include <stdexcept>
-#include <random>
-#include <iostream>
 
 namespace gl3 {
     void Game::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
