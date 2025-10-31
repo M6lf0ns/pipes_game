@@ -1,8 +1,9 @@
 #pragma once
+
+#include "Entity.h"
 #include <soloud.h>
 #include <soloud_wav.h>
 #include "Missile.h"
-#include "Entity.h"
 
 namespace gl3 {
     class Ship: public Entity {
@@ -21,8 +22,8 @@ namespace gl3 {
     private:
         SoLoud::Soloud audio;
         SoLoud::Wav firingSound;
-        float translationSpeed = 1.0f;
-        float rotationSpeed = 50.0f;
+        float translationSpeed = 3.0f;
+        float rotationSpeed = 360.0f;
         const float timeBetweenShots = 0.1;
         float countdownUntilNextShot = timeBetweenShots;
         std::vector<std::unique_ptr<Missile>> missiles;

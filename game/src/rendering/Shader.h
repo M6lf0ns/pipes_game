@@ -1,7 +1,8 @@
 #pragma once
-#include "glad/glad.h"
+
 #include <string>
 #include <filesystem>
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 namespace fs = std::filesystem;
@@ -10,7 +11,7 @@ namespace gl3 {
     class Shader {
     public:
         Shader(const fs::path &vertexShaderPath, const fs::path &fragmentShaderPath);
-        virtual ~Shader();
+        ~Shader();
 
         // Delete copy constructor
         Shader(const Shader &shader) = delete;

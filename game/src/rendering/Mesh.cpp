@@ -1,6 +1,5 @@
-#include "glad/glad.h"
 #include "Mesh.h"
-
+#include "glad/glad.h"
 
 namespace gl3 {
     template<typename T>

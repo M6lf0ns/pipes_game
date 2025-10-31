@@ -1,7 +1,8 @@
+#include "Entity.h"
+
 #include <iostream>
 
 #include "../Game.h"
-#include "Entity.h"
 
 namespace gl3 {
     Entity::Entity(Shader shader, Mesh mesh, glm::vec3 position, float zRotation, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld) :

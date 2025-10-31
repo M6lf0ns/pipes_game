@@ -1,5 +1,7 @@
-#include <iostream>
 #include "Ship.h"
+
+#include <iostream>
+
 #include "../Game.h"
 #include "../Assets.h"
 
@@ -8,13 +10,14 @@ namespace gl3 {
     Ship::Ship(glm::vec3 position, float zRotation, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
             Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
             Mesh({
-                         -0.25f, 0.0f, 0.0f,
-                         -0.25f, 0.5f, 0.0f,
-                         0.25f, 0.0f, 0.0f,
-
-                         0.25f, 0.5f, 0.0f,
+                // positions (x, y, z)
+-0.5f, -0.5f, 0.0f,
+0.5f, -0.5f, 0.0f,
+0.5f,  0.5f, 0.0f,
+-0.5f,  0.5f, 0.0f
                  },
-                 {0,1,2, 1,2,3 }),
+                 {0, 1, 2,
+                  2,3, 0}),
             position,
             zRotation,
             scale,
@@ -102,6 +105,7 @@ namespace gl3 {
         body = b2CreateBody(physicsWorld, &bodyDef);
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
+
 
         b2Vec2 vertices[] =
         {

@@ -7,7 +7,7 @@ namespace gl3 {
 
     class ContactListener {
     public:
-        static void ContactListener::checkForCollision(b2WorldId world) {
+        static void checkForCollision(b2WorldId world) {
             b2ContactEvents contactEvents = b2World_GetContactEvents(world);
 
             for (int i = 0; i < contactEvents.beginCount; ++i) {
@@ -30,7 +30,7 @@ namespace gl3 {
         }
 
     private:
-        static void* ContactListener::getUserDataOfShape(const b2ShapeId& shape) {
+        static void* getUserDataOfShape(const b2ShapeId& shape) {
             return b2Body_GetUserData(b2Shape_GetBody(shape));
         }
     };
