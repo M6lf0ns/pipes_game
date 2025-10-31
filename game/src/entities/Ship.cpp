@@ -40,28 +40,35 @@ namespace gl3 {
 
         auto body = getBody();
 
+        //make sure that the ship doesnt rotate after releasing A or D
+
         if(glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE || glfwGetKey(window, GLFW_KEY_D) == GLFW_RELEASE) {
             b2Body_SetAngularVelocity(body, 0);
         }
+        //Applies the rotational speed as a force to turn the ship towards the left
 
         if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
             b2Body_ApplyTorque(body, rotationSpeed, true);
         }
 
+        //same thing but to the right, that´s why torque is negative
         if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
             b2Body_ApplyTorque(body, -rotationSpeed, true);
         }
 
+        //If W not pressed, stop moving
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE || glfwGetKey(window, GLFW_KEY_S) == GLFW_RELEASE) {
             b2Body_SetLinearVelocity(body, b2Vec2_zero);
         }
 
+        //Figures out movement vector (direction and speed) for top-down, so it bases it on zRotation and then moves it "forward"
         if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             float x = cos(glm::radians(zRotation)) * translationSpeed;
             float y = sin(glm::radians(zRotation)) * translationSpeed;
             b2Body_ApplyLinearImpulseToCenter(body, b2Vec2{x, y}, true);
         }
 
+        //Same thing if we want to move "backwards"
         if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
             float x = -cos(glm::radians(zRotation)) * translationSpeed;
             float y = -sin(glm::radians(zRotation)) * translationSpeed;
