@@ -9,6 +9,7 @@
 #include <soloud_wav.h>
 #include "entities/Ship.h"
 #include <box2d/box2d.h>
+#include "Sprite.h"
 
 namespace gl3 {
     class Game {
@@ -20,13 +21,16 @@ namespace gl3 {
         Ship *getShip() { return ship; }
         GLFWwindow *getWindow() { return window; }
         const b2WorldId getPhysicsWorld() const;
+        float aspect = 0.0f;
 
     private:
+        std::unique_ptr<gl3::Shader> spriteShader;
         static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
         void update();
         void draw();
         void updateDeltaTime();
         void updatePhysics();
+
 
         GLFWwindow *window = nullptr;
         std::vector<std::unique_ptr<Entity>> entities;

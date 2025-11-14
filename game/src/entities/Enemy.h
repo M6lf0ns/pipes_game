@@ -6,6 +6,7 @@
 namespace gl3 {
     class Enemy: public Entity {
     public:
+        bool active = true; // default true
         explicit Enemy(glm::vec3 position = glm::vec3(0, 0, 0), float zRotation = 0, float size = 1, b2WorldId physicsWorld = b2_nullWorldId);
         void update(Game *game, float deltaTime) override;
         void draw(Game *game) override;

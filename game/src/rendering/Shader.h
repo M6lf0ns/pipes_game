@@ -21,8 +21,10 @@ namespace gl3 {
             std::swap(this->shaderProgram, other.shaderProgram);
             std::swap(this->vertexShader, other.vertexShader);
             std::swap(this->fragmentShader, other.fragmentShader);
-        }
 
+
+        }
+        void setInt(const std::string& name, int value); // <-- add this
         void setMatrix(const std::string &uniformName, glm::mat4 matrix) const;
         void setVector(const std::string &uniformName, glm::vec4 vector) const;
         void use() const;

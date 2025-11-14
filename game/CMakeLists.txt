@@ -20,9 +20,19 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Missile.cpp
         src/entities/Missile.h
         src/physics/ContactListener.h
+        src/Sprite.cpp
+        src/Sprite.h
+        src/rendering/Texture.cpp
+        src/rendering/Texture.h
+        src/EntityType.h
+        src/entities/Floor.cpp
+        src/entities/Floor.h
+        src/entities/Box.cpp
+        src/entities/Box.h
 
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/extern)
 # set executable name
 set(EXE_FILE Game)
 

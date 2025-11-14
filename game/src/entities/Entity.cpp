@@ -5,16 +5,16 @@
 #include "../Game.h"
 
 namespace gl3 {
-    Entity::Entity(Shader shader, Mesh mesh, glm::vec3 position, float zRotation, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld) :
+    Entity::Entity(Shader shader, glm::vec3 position, float zRotation, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld, EntityType type) :
             shader(std::move(shader)),
-            mesh(std::move(mesh)),
             position(position),
             zRotation(zRotation),
             scale(scale),
             color(color),
             physicsWorld(physicsWorld),
             body(b2_nullBodyId),
-            shape(b2_nullShapeId)
+            shape(b2_nullShapeId),
+            type(type)
     {}
 
     Entity::~Entity()
@@ -31,7 +31,7 @@ namespace gl3 {
         shader.use();
         shader.setMatrix("mvp", mvpMatrix);
         shader.setVector("color", color);
-        mesh.draw();
+
     }
 
     b2BodyId Entity::getBody() const {
@@ -52,6 +52,7 @@ namespace gl3 {
         position.y = physicsTransform.p.y;
 
         zRotation = glm::degrees(b2Rot_GetAngle(physicsTransform.q));
+
     }
 
     void Entity::startContact() {
