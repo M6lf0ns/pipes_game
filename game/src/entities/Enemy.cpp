@@ -7,32 +7,6 @@ namespace gl3
 {
     Enemy::Enemy(glm::vec3 position, float zRotation, float size, b2WorldId physicsWorld)
             : Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
-                     Mesh({0.0f, 0.0f, 0.0f,
-                           0.0f, 0.5f, 0.0f,
-                           0.25f, 0.25f, 0.0f,
-                           0.5f, 0.5f, 0.0f,
-                           0.75f, 0.0f, 0.0f,
-                           1.0f, -0.1f, 0.0f,
-                           0.1f, -0.25f, 0.0f,
-                           0.0f, -0.75f, 0.0f,
-
-                           -0.1f, -0.25f, 0.0f,
-                           -1.0f, -0.1f, 0.0f,
-                           -0.75f, 0.0f, 0.0f,
-                           -0.5f, 0.5f, 0.0f,
-                           -0.25f, 0.25f, 0.0f},
-                          {0, 1, 2,
-                           0, 2, 3,
-                           0, 3, 4,
-                           0, 4, 5,
-                           0, 5, 6,
-                           0, 6, 7,
-                           0, 7, 8,
-                           0, 8, 9,
-                           0, 9, 10,
-                           0, 10, 11,
-                           0, 11, 12,
-                           0, 12, 1}),
                      position,
                      zRotation,
                      glm::vec3(size, size, size),
@@ -50,6 +24,7 @@ namespace gl3
 
     void Enemy::update(Game* game, float deltaTime)
     {
+        if (!active) return;  // <— disable updates if not active
         const auto shipPosition = game->getShip()->getPosition();
         auto distanceToShip = glm::distance(position, shipPosition);
         float delta_x = this->getPosition().x - shipPosition.x;
@@ -99,6 +74,7 @@ namespace gl3
 
     void Enemy::draw(Game* game)
     {
+        if (!active) return;  // <— skip rendering if disabled
         Entity::draw(game);
         for (auto& m: missiles)
         {

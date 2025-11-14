@@ -5,6 +5,7 @@
 #include "../rendering/Shader.h"
 #include "box2d/id.h"
 #include "GLFW/glfw3.h"
+#include "../EntityType.h"
 
 namespace gl3{
     class Game;
@@ -12,12 +13,12 @@ namespace gl3{
     class Entity {
     public:
         Entity(Shader shader,
-               Mesh mesh,
                glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
                float zRotation = 0.0f,
                glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f),
                glm::vec4 color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
-               b2WorldId physicsWorld = b2_nullWorldId);
+               b2WorldId physicsWorld = b2_nullWorldId,
+               EntityType type = EntityType::None);
 
         virtual ~Entity();
 
@@ -28,7 +29,7 @@ namespace gl3{
         [[nodiscard]] const glm::vec3 &getPosition() const {return position; }
         [[nodiscard]] float getZRotation() const { return zRotation; }
         [[nodiscard]] const glm::vec3 &getScale() const { return scale; }
-        void setPosition(const glm::vec3 &position) { Entity::position = position; }
+        virtual void setPosition(const glm::vec3 &position) { Entity::position = position; }
         void setZRotation(float zRotation) { Entity::zRotation = zRotation; }
         void setScale(const glm::vec3 &scale) { Entity::scale = scale; }
         [[nodiscard]] b2BodyId getBody() const;
@@ -36,7 +37,11 @@ namespace gl3{
         virtual void updateBasedOnPhysics();
         virtual void startContact();
 
+        [[nodiscard]] EntityType getType() const { return type; }
+
+
     protected:
+        EntityType type;
         virtual void createPhysicsBody() = 0;
         glm::vec3 position;
         float zRotation;
@@ -45,9 +50,7 @@ namespace gl3{
         b2WorldId physicsWorld;
         b2BodyId body;
         b2ShapeId shape;
-    private:
         Shader shader;
-        Mesh mesh;
     };
 }
 

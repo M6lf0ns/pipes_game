@@ -3,6 +3,7 @@
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 #include "../Assets.h"
+#include <iostream>
 
 
 namespace gl3 {
@@ -61,6 +62,15 @@ namespace gl3 {
 
     void Shader::use() const {
         glUseProgram(shaderProgram);
+    }
+
+    void Shader::setInt(const std::string& name, int value) {
+        GLint loc = glGetUniformLocation(shaderProgram, name.c_str());
+        if (loc == -1) {
+            std::cerr << "Warning: uniform '" << name << "' doesn't exist!\n";
+        } else {
+            glUniform1i(loc, value);
+        }
     }
 
     Shader::~Shader() {

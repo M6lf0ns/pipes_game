@@ -43,7 +43,6 @@ namespace gl3 {
 
     Planet::Planet(glm::vec3 position, float size, glm::vec4 color, b2WorldId physicsWorld)
         : Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
-                 Mesh(glCircleData.vertices, glCircleData.indices),
                  position,
                  0,
                  glm::vec3(size, size, size),
