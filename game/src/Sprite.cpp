@@ -3,8 +3,8 @@
  namespace gl3 {
 
 
-     GLuint Sprite::VAO = 0;
-     GLuint Sprite::VBO = 0;
+     GLuint Sprite::VAO = 0; // config object that remembers how to interpret VBO data
+     GLuint Sprite::VBO = 0; // memory buffer on gpu that stores vertex data
      bool Sprite::initialized = false;
 
      Sprite::Sprite(glm::vec3 pos, glm::vec3 scale, GLuint tex)
@@ -16,7 +16,7 @@
          }
      }
 
-     void Sprite::initRenderData() {
+     void Sprite::initRenderData() { //Quad that will be used by every entity to render the image onto it
          float vertices[] = {
              // positions   // tex coords
              0.5f, 0.5f, 0.0f, 1.0f,
@@ -55,12 +55,12 @@
          // Bind texture
          glActiveTexture(GL_TEXTURE0);
          glBindTexture(GL_TEXTURE_2D, textureID);
-         shader.setInt("spriteTexture", 0);       // tell shader to use texture unit 0
+         shader.setInt("spriteTexture", 0);       // slot 0 stores a reference to tex data, gpu gets the rgba colors from tex coords and those values go into framebuffer
 
 
          // Draw quad
          glBindVertexArray(VAO);
-         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+         glDrawArrays(GL_TRIANGLE_FAN, 0, 4); //Triangle fan automatically draws triangles from 4 vertices, taking 4 vertices makes them a quad
          glBindVertexArray(0);
 
 
