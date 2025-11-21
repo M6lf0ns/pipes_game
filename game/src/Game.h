@@ -23,6 +23,10 @@ namespace gl3 {
         const b2WorldId getPhysicsWorld() const;
         float aspect = 0.0f;
 
+        static bool shapesAreTouching;
+        void ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
+        void ShapesStopTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
+
     private:
         std::unique_ptr<gl3::Shader> spriteShader;
         static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -41,6 +45,9 @@ namespace gl3 {
         float deltaTime = 1.0f/60;
         b2WorldId physicsWorld;
         float accumulator = 0.f;
+
+
+
     };
 }
 

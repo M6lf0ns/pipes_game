@@ -4,6 +4,10 @@
 #include "box2d/box2d.h"
 #include "box2d/types.h"
 #include "Floor.h"
+#include "box2d/src/joint.h"
+#include "Ship.h"
+#include "box2d/src/body.h"
+#include "../Game.h"
 
 
 namespace gl3 {
@@ -36,7 +40,7 @@ namespace gl3 {
 
         //Define Body
         b2BodyDef boxBodyDef = b2DefaultBodyDef();
-        boxBodyDef.type = b2_dynamicBody;
+        boxBodyDef.type = b2_staticBody;
         boxBodyDef.position = b2Vec2{position.x,  position.y};
         boxBodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &boxBodyDef);
@@ -57,16 +61,17 @@ namespace gl3 {
         b2Polygon box = b2MakeBox(halfWidth, halfHeight);
         b2ShapeDef boxShapeDef = b2DefaultShapeDef();
         shape = b2CreatePolygonShape(body, &boxShapeDef, &box);
-        b2Shape_SetFriction(shape, 0.8f);
+        //b2Shape_SetUserData(shape, this);             // <<< IMPORTANT: let contact system identify this Box
+        b2Shape_SetFriction(shape, 1.0f);
         b2Shape_SetRestitution(shape, 0.1f);
         b2Shape_EnableContactEvents(shape,true);
 
         b2MassData massData;
-        massData.mass = 1.5f;
+        massData.mass = 5.0f;
         massData.center = b2Vec2{0.0f, 0.0f};
         massData.rotationalInertia = 0.0f;
         b2Body_SetMassData(body, massData);
-        b2Body_SetLinearDamping(body, 0.5f);
+        b2Body_SetLinearDamping(body, 1.0f);
 
 
     }
@@ -84,6 +89,71 @@ namespace gl3 {
 
     }
 
+    void Box::update(Game *game, float deltaTime) {
+        if (isTouchingPlayer && Ship::push_PullKeyPressed) {
+            b2Body_SetType(body, b2_dynamicBody);
+            b2Body_SetAwake(body, true);
+
+            // Player info
+            float playerVelX = Ship::playerVelX;
+            float playerPosX = Ship::playerPos.x;
+
+            // Box position
+            b2Vec2 boxPos = b2Body_GetPosition(body);
+            float boxPosX = boxPos.x;
+
+            // Vector from player to box
+            float playerToBoxX = boxPosX - playerPosX;
+
+            // Determine push or pull
+            bool pushing = (playerVelX * playerToBoxX > 0); // moving toward box
+            bool pulling = (playerVelX * playerToBoxX < 0); // moving away from box
+
+            // Force multipliers (can tweak)
+            float pushForceMultiplier = 0.0000000000005f;
+            float pullForceMultiplier = 0.01f;
+            float forceMagnitude = (pushing ? pushForceMultiplier : pullForceMultiplier) * fabs(playerVelX);
+
+            // Determine direction of impulse based purely on player-to-box position
+            // Positive = right, Negative = left
+            float boxDirRelativeToPlayer = (playerToBoxX >= 0) ? 1.0f : -1.0f;
+
+            // pushPullSign: +1 if pushing (moving toward box), -1 if pulling (moving away)
+            // boxDirRelativeToPlayer: +1 if box is to the right of player, -1 if box is to the left
+            // final impulse direction = boxDirRelativeToPlayer * pushPullSign
+            float pushPullSign = pushing ? 1.0f : -1.0f;
+
+            b2Vec2 boxForce = { forceMagnitude * boxDirRelativeToPlayer * pushPullSign, 0.0f };
+            b2Body_ApplyLinearImpulseToCenter(body, boxForce, true);
+
+            // Reset still timer
+            stillTime = 0.0f;
+        }
+        // If body is dynamic and not being pushed:
+        if (b2Body_GetType(body) == b2_dynamicBody) {
+
+            b2Vec2 vel = b2Body_GetLinearVelocity(body);
+            float speed = sqrtf(vel.x * vel.x + vel.y * vel.y);
+
+            // Check if the box is basically not moving
+            if (speed < 0.01f) {
+                stillTime += deltaTime;
+            } else {
+                stillTime = 0.0f;
+            }
+
+            // If the box has been still for long enough, freeze it
+            if (stillTime >= stillThreshold) {
+
+                b2Body_SetLinearVelocity(body, {0, 0});
+                b2Body_SetAngularVelocity(body, 0);
+
+                b2Body_SetType(body, b2_staticBody);
+                stillTime = 0.0f; //Reset timer for next time box becomes dynamic
+            }
+        }
+    }
+
     float Box::GetHalfHeight() const {
         return halfHeight;
     }
@@ -93,72 +163,83 @@ namespace gl3 {
 
     void Box::draw(Game *game) {
         sprite.draw(shader);
-        DebugDraw();
+
         // glm::vec3 spriteScale = sprite.getScale();
         // std::cout << spriteScale.x << " " <<  spriteScale.y << " " << spriteScale.z << std::endl;
     }
 
     void Box::startContact() {
-        std::cout << "Box::startContact" << std::endl;
+       isTouchingPlayer = true;
+        std::cout << "[Box::startContact] this=" << this
+              << " bodyType=" << b2Body_GetType(body)
+              << " pos=(" << b2Body_GetPosition(body).x << "," << b2Body_GetPosition(body).y << ")"
+              << std::endl;
+
+
     }
 
-    void Box::DebugDraw() {
-        // Get physics body transform
-        auto bodyPos = b2Body_GetTransform(body);
-
-        // Calculate the edges of the box
-        float left   = bodyPos.p.x - halfWidth;
-        float right  = bodyPos.p.x + halfWidth;
-        float bottom = bodyPos.p.y - halfHeight;
-        float top    = bodyPos.p.y + halfHeight;
-
-        // Log the box information
-        std::cout << "=== DEBUG BOX ===" << std::endl;
-        std::cout << "Body Position: (" << bodyPos.p.x << ", " << bodyPos.p.y << ")" << std::endl;
-        std::cout << "Half-Width: " << halfWidth << ", Half-Height: " << halfHeight << std::endl;
-        std::cout << "Edges -> Left: " << left << ", Right: " << right
-                  << ", Bottom: " << bottom << ", Top: " << top << std::endl;
-
-        // AABB
-        float minX = left;
-        float maxX = right;
-        float minY = bottom;
-        float maxY = top;
-        std::cout << "AABB -> Min: (" << minX << ", " << minY << "), Max: (" << maxX << ", " << maxY << ")" << std::endl;
-
-        // Vertices for drawing
-        std::vector<glm::vec3> vertices = {
-            {left, bottom, 0.0f},
-            {right, bottom, 0.0f},
-            {right, top, 0.0f},
-            {left, top, 0.0f}
-        };
-
-        // Log vertices
-        for (int i = 0; i < vertices.size(); ++i) {
-            std::cout << "Vertex " << i << ": (" << vertices[i].x << ", " << vertices[i].y << ", " << vertices[i].z << ")" << std::endl;
-        }
-
-        // Draw box outline using your existing shader
-        shader.use();
-        shader.setVector("color", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-
-        GLuint VBO, VAO;
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_DYNAMIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-        glDeleteBuffers(1, &VBO);
-        glDeleteVertexArrays(1, &VAO);
+    void Box::endContact() {
+        isTouchingPlayer = false;
+        std::cout << "[Box::endContact] this=" << this << std::endl;
     }
+
+    // void Box::DebugDraw() {
+    //     // Get physics body transform
+    //     auto bodyPos = b2Body_GetTransform(body);
+    //
+    //     // Calculate the edges of the box
+    //     float left   = bodyPos.p.x - halfWidth;
+    //     float right  = bodyPos.p.x + halfWidth;
+    //     float bottom = bodyPos.p.y - halfHeight;
+    //     float top    = bodyPos.p.y + halfHeight;
+    //
+    //     // Log the box information
+    //     std::cout << "=== DEBUG BOX ===" << std::endl;
+    //     std::cout << "Body Position: (" << bodyPos.p.x << ", " << bodyPos.p.y << ")" << std::endl;
+    //     std::cout << "Half-Width: " << halfWidth << ", Half-Height: " << halfHeight << std::endl;
+    //     std::cout << "Edges -> Left: " << left << ", Right: " << right
+    //               << ", Bottom: " << bottom << ", Top: " << top << std::endl;
+    //
+    //     // AABB
+    //     float minX = left;
+    //     float maxX = right;
+    //     float minY = bottom;
+    //     float maxY = top;
+    //     std::cout << "AABB -> Min: (" << minX << ", " << minY << "), Max: (" << maxX << ", " << maxY << ")" << std::endl;
+    //
+    //     // Vertices for drawing
+    //     std::vector<glm::vec3> vertices = {
+    //         {left, bottom, 0.0f},
+    //         {right, bottom, 0.0f},
+    //         {right, top, 0.0f},
+    //         {left, top, 0.0f}
+    //     };
+    //
+    //     // Log vertices
+    //     for (int i = 0; i < vertices.size(); ++i) {
+    //         std::cout << "Vertex " << i << ": (" << vertices[i].x << ", " << vertices[i].y << ", " << vertices[i].z << ")" << std::endl;
+    //     }
+    //
+    //     // Draw box outline using your existing shader
+    //     shader.use();
+    //     shader.setVector("color", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+    //
+    //     GLuint VBO, VAO;
+    //     glGenVertexArrays(1, &VAO);
+    //     glGenBuffers(1, &VBO);
+    //
+    //     glBindVertexArray(VAO);
+    //     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_DYNAMIC_DRAW);
+    //
+    //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+    //     glEnableVertexAttribArray(0);
+    //
+    //     glDrawArrays(GL_LINE_LOOP, 0, 4);
+    //
+    //     glDeleteBuffers(1, &VBO);
+    //     glDeleteVertexArrays(1, &VAO);
+    // }
 
 
 
