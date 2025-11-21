@@ -19,8 +19,10 @@ namespace gl3 {
         void updateBasedOnPhysics() override;
         void startContact() override;
         void setPosition(const glm::vec3 &position) override;
+        static glm::vec3 playerPos;
         b2ShapeId shape;
-
+        static bool push_PullKeyPressed;
+        static float playerVelX;
         static float shipHalfHeight;
 
 

@@ -9,9 +9,13 @@ namespace gl3 {
         explicit Box(glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), glm::vec4 color = glm::vec4(1, 0, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
         void draw(Game *game) override;
         void startContact() override;
+        void update(Game *game, float deltaTime) override;
+        void endContact();
         void updateBasedOnPhysics() override;
         [[nodiscard]] float GetHalfHeight() const;
-        void DebugDraw();
+        //void DebugDraw();
+
+
 
 
         protected:
@@ -20,6 +24,10 @@ namespace gl3 {
     private:
         Sprite sprite;
         float halfWidth = 0.0f, halfHeight = 0.0f;
+        bool isMovable = false;
+        bool isTouchingPlayer = false;
+        float stillTime = 0.0f;              // how long the box has been still
+        const float stillThreshold = 0.2f;   // time required before freezing again
 
 
 

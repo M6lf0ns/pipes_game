@@ -10,8 +10,11 @@
 
 namespace gl3 {
 
+    bool gl3::Ship::push_PullKeyPressed = false;
     bool gl3::Ship::spaceWasPressed = false;
     float gl3::Ship::shipHalfHeight;
+    float gl3::Ship::playerVelX;
+    glm::vec3 gl3::Ship::playerPos;
 
     Ship::Ship(glm::vec3 position, float zRotation, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
             Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
@@ -49,7 +52,7 @@ namespace gl3 {
             vel.x = -translationSpeed; // move left
             if (vel.x < -maxSpeed) vel.x = -maxSpeed;
             b2Body_SetLinearVelocity(body, vel);
-            position.x -= translationSpeed * deltaTime;
+            //position.x -= translationSpeed * deltaTime;
 
 
         } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
@@ -57,7 +60,7 @@ namespace gl3 {
             // Clamp horizontal velocity
             if (vel.x > maxSpeed) vel.x = maxSpeed;
             b2Body_SetLinearVelocity(body, vel);
-            position.x += translationSpeed * deltaTime;
+            //position.x += translationSpeed * deltaTime; This would manually teleport the sprite instead of relying on UpdateBasedOnPhysics
         } // if neither A nor D pressed, x stays 0
 
         else {
@@ -79,12 +82,20 @@ namespace gl3 {
         spaceWasPressed = spacePressed;
 
 
+        // E key for pushing
+        push_PullKeyPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+
+        playerVelX = vel.x;
+
+        playerPos = position;
+
         updateBasedOnPhysics();
 
         // Prevent any rotation
         b2Body_SetAngularVelocity(body, 0);
 
     }
+
 
 
     void Ship::draw(Game *game) {
@@ -96,8 +107,8 @@ namespace gl3 {
         float spriteBottom = spritePos.y - spriteScale.y / 2.0f;
         float spriteTop = spritePos.y + spriteScale.y / 2.0f;
 
-        std::cout << "Sprite bounds - Bottom: " << spriteBottom << " Top: " << spriteTop << std::endl;
-        std::cout << "Sprite position Y: " << spritePos.y << " Scale Y: " << spriteScale.y << std::endl;
+        // std::cout << "Sprite bounds - Bottom: " << spriteBottom << " Top: " << spriteTop << std::endl;
+        // std::cout << "Sprite position Y: " << spritePos.y << " Scale Y: " << spriteScale.y << std::endl;
 
         sprite.draw(shader);
         // Debug: print the MVP matrix

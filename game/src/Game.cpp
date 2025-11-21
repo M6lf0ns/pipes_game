@@ -16,6 +16,8 @@
 #include "entities/Floor.h"
 
 namespace gl3 {
+
+    bool gl3::Game::shapesAreTouching = false; // dunno how else to do it rn
     void Game::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
         glViewport(0, 0, width, height);
     }
@@ -103,7 +105,7 @@ namespace gl3 {
         std::cout << "Floor half-height: " << floor->GetHalfHeight() << std::endl;
         std::cout << "Floor top Y: " << (floor->GetFloorY() + floor->GetHalfHeight()) << std::endl;
 
-        auto box = std::make_unique<Box>(glm::vec3(0.0f, 0.3f, 0.0f), glm::vec3(0.25f, 0.25f, 0.0f), glm::vec4(0.0f),
+        auto box = std::make_unique<Box>(glm::vec3(0.0f, (floor->GetFloorY() + floor->GetHalfHeight()+ 0.125f), 0.0f), glm::vec3(0.25f, 0.25f, 0.0f), glm::vec4(0.0f),
                                          physicsWorld);
         // Create ship at temporary position to get its half-height
         auto spaceShip = std::make_unique<Ship>(glm::vec3(0.25f, 0.25f, 0.0f),
@@ -179,7 +181,104 @@ namespace gl3 {
         for (auto &entity: entities) {
             entity->update(this, deltaTime);
         }
+        b2ContactEvents contactEvents = b2World_GetContactEvents(physicsWorld);
+
+        for (int i = 0; i < contactEvents.beginCount; ++i) {
+            b2ContactBeginTouchEvent* beginEvent = contactEvents.beginEvents + i;
+            ShapesStartTouching(beginEvent->shapeIdA, beginEvent->shapeIdB);
+
+
+        }
+
+            for (int i = 0; i < contactEvents.endCount; ++i)
+            {
+                b2ContactEndTouchEvent* endEvent = contactEvents.endEvents + i;
+
+                // Use b2Shape_IsValid because a shape may have been destroyed
+                if (b2Shape_IsValid(endEvent->shapeIdA) && b2Shape_IsValid(endEvent->shapeIdB))
+                {
+                    ShapesStopTouching(endEvent->shapeIdA, endEvent->shapeIdB);
+                }
+            }
+
+
     }
+    //CONTINUE HERE, we call startContact, in there we should probably check  what we´re colliding with, or maybe change a flag and give that to the update method
+    void Game::ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB) {
+        // Check if shapes are still valid
+        if (!b2Shape_IsValid(shape_idA) || !b2Shape_IsValid(shape_idB)) {
+            return;
+        }
+
+        void* userDataA = b2Shape_GetUserData(shape_idA);
+        void* userDataB = b2Shape_GetUserData(shape_idB);
+
+
+        // Check if userData exists
+        if (!userDataA || !userDataB) {
+            return;
+        }
+
+        Entity* entityA = static_cast<Entity*>(userDataA);
+        Entity* entityB = static_cast<Entity*>(userDataB);
+
+        //Now we can check types and call methods
+        if (entityA->getType() == EntityType::Player &&
+            entityB->getType() == EntityType::Box) {
+            Box* box = static_cast<Box*>(entityB); //safe because we know its a box
+
+            box->startContact();
+
+
+        }
+        // DON'T FORGET THE REVERSE CASE!
+        else if (entityA->getType() == EntityType::Box &&
+                 entityB->getType() == EntityType::Player) {
+            Box* box = static_cast<Box*>(entityA);
+
+            box->startContact();
+
+                 }
+
+
+    }
+
+    void Game::ShapesStopTouching(b2ShapeId shape_idA, b2ShapeId shape_idB) {
+        std::cout << "Buh!" << std::endl;
+        // Check if shapes are still valid
+        if (!b2Shape_IsValid(shape_idA) || !b2Shape_IsValid(shape_idB)) {
+            return;
+        }
+
+        void* userDataA = b2Shape_GetUserData(shape_idA);
+        void* userDataB = b2Shape_GetUserData(shape_idB);
+
+
+        // Check if userData exists
+        if (!userDataA || !userDataB) {
+            return;
+        }
+
+        Entity* entityA = static_cast<Entity*>(userDataA);
+        Entity* entityB = static_cast<Entity*>(userDataB);
+
+        if (entityA->getType() == EntityType::Player &&
+     entityB->getType() == EntityType::Box) {
+
+            Box* box = static_cast<Box*>(entityB);
+            box->endContact();
+     }
+
+        else if (entityA->getType() == EntityType::Box &&
+                 entityB->getType() == EntityType::Player) {
+
+            Box* box = static_cast<Box*>(entityA);
+            box->endContact();
+                 }
+    }
+
+
+
 
     void Game::draw() {
         glClearColor(0.172f, 0.243f, 0.313f, 1.0f);
