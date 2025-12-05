@@ -13,7 +13,8 @@ namespace gl3 {
                 0,
                 scale,
                 color,
-                physicsWorld),
+                physicsWorld,
+                EntityType::Floor),
                 sprite(position,scale, Texture::LoadTexture("assets/textures/simple_square.png"))
 
     {
@@ -31,6 +32,12 @@ namespace gl3 {
 
     void Floor::createPhysicsBody()
     {
+        std::cout << "Box: physicsWorld.index1 = " << physicsWorld.index1 << std::endl;
+
+        if (physicsWorld.index1 < 1 || physicsWorld.index1 > 32) {
+            std::cout << "ERROR: Box has invalid physicsWorld!" << std::endl;
+            throw std::runtime_error("Invalid physics world in Box");
+        }
         // Box2D expects position = center of the body
         // Compute half-height
         floorHalfHeight = scale.y;  // assume scale.y already = half-height
@@ -43,20 +50,23 @@ namespace gl3 {
         // Define body
         b2BodyDef groundBodyDef = b2DefaultBodyDef();
         groundBodyDef.position = b2Vec2{ position.x, floorY }; // center of floor
-        b2BodyId groundId = b2CreateBody(physicsWorld, &groundBodyDef);
+        groundBodyDef.userData = this;  // MOVED: set userData BEFORE creating body
+        body = b2CreateBody(physicsWorld, &groundBodyDef);  // FIXED: store body!
 
         // Define box shape (half sizes)
         b2Polygon groundBox = b2MakeBox(halfWidth, floorHalfHeight);
         b2ShapeDef groundShapeDef = b2DefaultShapeDef();
-        b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
+        shape = b2CreatePolygonShape(body, &groundShapeDef, &groundBox);  // FIXED: store shape!
+        b2Shape_SetUserData(shape, this);  // FIXED: set user data on shape
+        b2Shape_EnableContactEvents(shape, true);  // Now this works!
 
         std::cout << "Floor physics body created: centerY=" << floorY
                   << ", halfWidth=" << halfWidth << ", halfHeight=" << floorHalfHeight << std::endl;
-
     }
 
     void Floor::draw(Game *game) {
-        sprite.draw(shader);
+        Entity::draw(game);
+        sprite.draw(shader, game);
     }
 
     float Floor::GetFloorY() const {
@@ -68,7 +78,13 @@ namespace gl3 {
     }
 
     void Floor::startContact() {
-        std::cout << "Floor::startContact" << std::endl;
+
+
+    }
+
+    void Floor::endContact() {
+
+
     }
 
 }

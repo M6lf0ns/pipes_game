@@ -29,6 +29,10 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Floor.h
         src/entities/Box.cpp
         src/entities/Box.h
+        src/entities/Switch.cpp
+        src/entities/Switch.h
+        src/entities/Door.cpp
+        src/entities/Door.h
 
 )
 

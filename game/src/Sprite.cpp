@@ -1,6 +1,9 @@
 #include <iostream>
 #include "Sprite.h"
- namespace gl3 {
+#include "Game.h"
+
+
+namespace gl3 {
 
 
      GLuint Sprite::VAO = 0; // config object that remembers how to interpret VBO data
@@ -43,15 +46,11 @@
          glBindVertexArray(0);
      }
 
-     void Sprite::draw(Shader& shader) {
+     void Sprite::draw(Shader& shader, Game* game) {
+         // Sprite calculates its own MVP using game's camera
+         glm::mat4 mvp = game->calculateMvpMatrix(position, 0.0f, scale);
          shader.use();
-
-         // Set model matrix
-         glm::mat4 model = glm::mat4(1.0f);
-         model = glm::translate(model, position);
-         model = glm::scale(model, scale);
-         shader.setMatrix("mvp", model);
-
+         shader.setMatrix("mvp", mvp);
          // Bind texture
          glActiveTexture(GL_TEXTURE0);
          glBindTexture(GL_TEXTURE_2D, textureID);
@@ -64,6 +63,10 @@
          glBindVertexArray(0);
 
 
+     }
+
+    void Sprite::setTexture(GLuint newTexture) {
+         textureID = newTexture;
      }
 
      void Sprite::cleanup() {

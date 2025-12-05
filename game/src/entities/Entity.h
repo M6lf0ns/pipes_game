@@ -1,10 +1,8 @@
 #pragma once
 
 #include "glm/vec3.hpp"
-#include "../rendering/Mesh.h"
 #include "../rendering/Shader.h"
 #include "box2d/id.h"
-#include "GLFW/glfw3.h"
 #include "../EntityType.h"
 
 namespace gl3{
@@ -12,7 +10,7 @@ namespace gl3{
 
     class Entity {
     public:
-        Entity(Shader shader,
+        explicit Entity(Shader shader,
                glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
                float zRotation = 0.0f,
                glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f),
