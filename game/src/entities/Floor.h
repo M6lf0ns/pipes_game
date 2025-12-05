@@ -8,15 +8,17 @@ namespace gl3 {
     public:
         explicit Floor(glm::vec3 position = glm::vec3(0, 0, 0), glm::vec3 scale = glm::vec3(0.0f,0.0f,0.0f), glm::vec4 color = glm::vec4(1, 0, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
         void draw(Game *game) override;
+        void startContact() override;
+        void endContact();
+        [[nodiscard]] float GetHalfHeight() const;
+        [[nodiscard]] float GetFloorY() const;
+
 
 
     protected:
         void createPhysicsBody() override;
 
-    public:
-        void startContact() override;
-        [[nodiscard]] float GetHalfHeight() const;
-        [[nodiscard]] float GetFloorY() const;
+
 
     private:
 

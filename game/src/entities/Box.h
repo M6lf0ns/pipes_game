@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "../Sprite.h"
+#include "box2d/types.h"
 
 namespace gl3 {
 

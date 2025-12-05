@@ -10,6 +10,7 @@
 #include "entities/Ship.h"
 #include <box2d/box2d.h>
 #include "Sprite.h"
+#include "entities/Door.h"
 
 namespace gl3 {
     class Game {
@@ -23,9 +24,12 @@ namespace gl3 {
         const b2WorldId getPhysicsWorld() const;
         float aspect = 0.0f;
 
+
         static bool shapesAreTouching;
         void ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
         void ShapesStopTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
+        void SensorStartsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
+        void SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
 
     private:
         std::unique_ptr<gl3::Shader> spriteShader;
@@ -39,6 +43,7 @@ namespace gl3 {
         GLFWwindow *window = nullptr;
         std::vector<std::unique_ptr<Entity>> entities;
         Ship *ship = nullptr;
+        Door *doorptr = nullptr;
         SoLoud::Soloud audio;
         std::unique_ptr<SoLoud::Wav> backgroundMusic;
         float lastFrameTime = 1.0f/60;

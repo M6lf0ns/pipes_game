@@ -19,8 +19,10 @@ namespace gl3 {
             0,
             scale,
             color,
-            physicsWorld),
+            physicsWorld,
+            EntityType::Box),
     sprite(position, scale, Texture::LoadTexture("assets/textures/temp_box1.png"))
+
 
     {
 
@@ -38,9 +40,16 @@ namespace gl3 {
 
     void Box::createPhysicsBody() {
 
+        std::cout << "Box: physicsWorld.index1 = " << physicsWorld.index1 << std::endl;
+
+        if (physicsWorld.index1 < 1 || physicsWorld.index1 > 32) {
+            std::cout << "ERROR: Box has invalid physicsWorld!" << std::endl;
+            throw std::runtime_error("Invalid physics world in Box");
+        }
         //Define Body
         b2BodyDef boxBodyDef = b2DefaultBodyDef();
-        boxBodyDef.type = b2_staticBody;
+        boxBodyDef.enableSleep = true;
+        boxBodyDef.type = b2_dynamicBody;
         boxBodyDef.position = b2Vec2{position.x,  position.y};
         boxBodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &boxBodyDef);
@@ -62,16 +71,19 @@ namespace gl3 {
         b2ShapeDef boxShapeDef = b2DefaultShapeDef();
         shape = b2CreatePolygonShape(body, &boxShapeDef, &box);
         //b2Shape_SetUserData(shape, this);             // <<< IMPORTANT: let contact system identify this Box
-        b2Shape_SetFriction(shape, 1.0f);
+        b2Shape_SetFriction(shape, 0.8f); // friction of box sides/bottom
         b2Shape_SetRestitution(shape, 0.1f);
         b2Shape_EnableContactEvents(shape,true);
+        b2Shape_EnableSensorEvents(shape, true);
+        b2Shape_SetUserData(shape, this);
+
 
         b2MassData massData;
-        massData.mass = 5.0f;
+        massData.mass = 20.0f;
         massData.center = b2Vec2{0.0f, 0.0f};
-        massData.rotationalInertia = 0.0f;
+        massData.rotationalInertia = 0.1f;
         b2Body_SetMassData(body, massData);
-        b2Body_SetLinearDamping(body, 1.0f);
+        b2Body_SetLinearDamping(body, 5.0f);
 
 
     }
@@ -79,78 +91,82 @@ namespace gl3 {
     void Box::updateBasedOnPhysics() {
 
         Entity::updateBasedOnPhysics();
-        //setting the sprite´s position, can be avoided if we add Sprite to Entity
-        //would not need to be overriden anymore
-        auto bodyPos = b2Body_GetTransform(body);
-        sprite.setPosition(glm::vec3(bodyPos.p.x, bodyPos.p.y, 0.0f));
+        // static int counter = 0;
+        // std::cout << "Box updateBasedOnPhysics call #" << ++counter << std::endl;
+        // //setting the sprite´s position, can be avoided if we add Sprite to Entity
+        // //would not need to be overriden anymore
+        //
+        // static int frameCount = 0;
+        b2Vec2 bodyPos = b2Body_GetPosition(body);
+        //
+        // // Log only when not touching player and ship is moving
+        // if (!isTouchingPlayer && std::abs(Ship::playerVelX) > 0.1f) {
+        //     if (frameCount++ % 30 == 0) { // Every 30 frames
+        //         std::cout << "BOX JITTER CHECK - Pos: (" << bodyPos.x << ", " << bodyPos.y
+        //                   << ") Vel: " << Ship::playerVelX
+        //                   << " Touching: " << isTouchingPlayer << std::endl;
+        //     }
+        // }
 
+        sprite.setPosition(glm::vec3(bodyPos.x, bodyPos.y, 0.0f));
 
 
 
     }
 
-    void Box::update(Game *game, float deltaTime) {
-        if (isTouchingPlayer && Ship::push_PullKeyPressed) {
-            b2Body_SetType(body, b2_dynamicBody);
+    void Box::update(Game *game, float deltaTime)
+    {
+        if (isTouchingPlayer && Ship::push_PullKeyPressed)
+        {
             b2Body_SetAwake(body, true);
 
-            // Player info
             float playerVelX = Ship::playerVelX;
             float playerPosX = Ship::playerPos.x;
-
-            // Box position
             b2Vec2 boxPos = b2Body_GetPosition(body);
-            float boxPosX = boxPos.x;
+            b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
 
-            // Vector from player to box
-            float playerToBoxX = boxPosX - playerPosX;
-
-            // Determine push or pull
+            // Determine if pushing or pulling
+            float playerToBoxX = boxPos.x - playerPosX;
             bool pushing = (playerVelX * playerToBoxX > 0); // moving toward box
             bool pulling = (playerVelX * playerToBoxX < 0); // moving away from box
 
-            // Force multipliers (can tweak)
-            float pushForceMultiplier = 0.0000000000005f;
-            float pullForceMultiplier = 0.01f;
-            float forceMagnitude = (pushing ? pushForceMultiplier : pullForceMultiplier) * fabs(playerVelX);
+            if (pulling)
+            {
+                // PULLING: Instantly match player velocity (no lag)
+                b2Body_SetLinearVelocity(body, {playerVelX, currentVel.y});
+            }
+            else if (pushing)
+            {
+                // PUSHING: Smooth interpolation feels more natural
+                float smoothFactor = 15.0f;
+                float newVelX = currentVel.x + (playerVelX - currentVel.x) * smoothFactor * deltaTime;
+                b2Body_SetLinearVelocity(body, {newVelX, currentVel.y});
+            }
 
-            // Determine direction of impulse based purely on player-to-box position
-            // Positive = right, Negative = left
-            float boxDirRelativeToPlayer = (playerToBoxX >= 0) ? 1.0f : -1.0f;
-
-            // pushPullSign: +1 if pushing (moving toward box), -1 if pulling (moving away)
-            // boxDirRelativeToPlayer: +1 if box is to the right of player, -1 if box is to the left
-            // final impulse direction = boxDirRelativeToPlayer * pushPullSign
-            float pushPullSign = pushing ? 1.0f : -1.0f;
-
-            b2Vec2 boxForce = { forceMagnitude * boxDirRelativeToPlayer * pushPullSign, 0.0f };
-            b2Body_ApplyLinearImpulseToCenter(body, boxForce, true);
-
-            // Reset still timer
+            // Low friction for smooth movement
+            b2Shape_SetFriction(shape, 0.1f);
             stillTime = 0.0f;
         }
-        // If body is dynamic and not being pushed:
-        if (b2Body_GetType(body) == b2_dynamicBody) {
-
+        else
+        {
+            // RELEASE: Stop immediately
             b2Vec2 vel = b2Body_GetLinearVelocity(body);
-            float speed = sqrtf(vel.x * vel.x + vel.y * vel.y);
+            b2Body_SetLinearVelocity(body, {0.0f, vel.y});
+            b2Shape_SetFriction(shape, 10000.0f);
+        }
 
-            // Check if the box is basically not moving
-            if (speed < 0.01f) {
-                stillTime += deltaTime;
-            } else {
+        // Sleep when stationary
+        b2Vec2 vel = b2Body_GetLinearVelocity(body);
+        float speed = sqrtf(vel.x * vel.x + vel.y * vel.y);
+
+        if (speed < 0.01f) {
+            stillTime += deltaTime;
+            if (stillTime >= 0.5f) {
+                b2Body_SetAwake(body, false);
                 stillTime = 0.0f;
             }
-
-            // If the box has been still for long enough, freeze it
-            if (stillTime >= stillThreshold) {
-
-                b2Body_SetLinearVelocity(body, {0, 0});
-                b2Body_SetAngularVelocity(body, 0);
-
-                b2Body_SetType(body, b2_staticBody);
-                stillTime = 0.0f; //Reset timer for next time box becomes dynamic
-            }
+        } else {
+            stillTime = 0.0f;
         }
     }
 
@@ -162,10 +178,13 @@ namespace gl3 {
 
 
     void Box::draw(Game *game) {
-        sprite.draw(shader);
-
-        // glm::vec3 spriteScale = sprite.getScale();
-        // std::cout << spriteScale.x << " " <<  spriteScale.y << " " << spriteScale.z << std::endl;
+        Entity::draw(game);
+        sprite.draw(shader,game);
+        // std::cout << "BOX - World Pos: " << position.x << ", " << position.y
+        //   << " Screen Pos: " << sprite.getPosition().x << ", " << sprite.getPosition().y << std::endl;
+        //
+        // // glm::vec3 spriteScale = sprite.getScale();
+        // // std::cout << spriteScale.x << " " <<  spriteScale.y << " " << spriteScale.z << std::endl;
     }
 
     void Box::startContact() {

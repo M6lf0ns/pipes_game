@@ -9,6 +9,7 @@
 
 
 namespace gl3 {
+    class Sprite;
     class Ship: public Entity {
     public:
         explicit Ship(glm::vec3 position = glm::vec3(0.0f, 0.6f, 0.0f),
@@ -21,9 +22,12 @@ namespace gl3 {
         void setPosition(const glm::vec3 &position) override;
         static glm::vec3 playerPos;
         b2ShapeId shape;
+        b2ShapeId footSensorShape;
         static bool push_PullKeyPressed;
         static float playerVelX;
         static float shipHalfHeight;
+        bool isGrounded = false;
+        int groundContacts = 0;
 
 
     protected:

@@ -9,15 +9,18 @@
 #include "physics/ContactListener.h"
 #include "box2d/box2d.h"
 #include "entities/Box.h"
+#include "entities/Door.h"
 #include "entities/Floor.h"
 #include "glm/gtx/string_cast.hpp"
 #include "rendering/Texture.h"
 #include "rendering/Shader.h"
 #include "entities/Floor.h"
+#include "entities/Switch.h"
 
 namespace gl3 {
 
-    bool gl3::Game::shapesAreTouching = false; // dunno how else to do it rn
+    bool gl3::Game::shapesAreTouching = false;
+
     void Game::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
         glViewport(0, 0, width, height);
     }
@@ -39,18 +42,25 @@ namespace gl3 {
         }
 
         glfwMakeContextCurrent(window);
+
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+        // ADD THIS LINE - Enable VSync to lock to monitor refresh rate
+        glfwSwapInterval(1); //makes box jitter go away BUT when pulling box makes box run after you
         gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
         if (glGetError() != GL_NO_ERROR) {
             throw std::runtime_error("gl error");
         }
+
+        // Enable blending for transparent textures
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         audio.init();
         audio.setGlobalVolume(0.1f);
 
         // Create the physics world
         b2WorldDef worldDef = b2DefaultWorldDef();
-        // We use worldDef to define our physics world
         worldDef.gravity = b2Vec2{0.0f, -9.8f};
         physicsWorld = b2CreateWorld(&worldDef);
     }
@@ -59,17 +69,33 @@ namespace gl3 {
         glfwTerminate();
     }
 
-    glm::mat4 Game::calculateMvpMatrix(glm::vec3 position, float zRotationInDegrees, glm::vec3 scale) {
+    glm::mat4 Game::calculateMvpMatrix(glm::vec3 position, float zRotation, glm::vec3 scale) {
         // Model matrix
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, position);
-        model = glm::rotate(model, glm::radians(zRotationInDegrees), glm::vec3(0.0f, 0.0f, 1.0f));
+        model = glm::rotate(model, glm::radians(zRotation), glm::vec3(0.0f, 0.0f, 1.0f));
         model = glm::scale(model, scale);
 
-        // No need for a complex view; identity works for a static 2D camera
-        glm::mat4 view = glm::mat4(1.0f);
+        // Camera follows player horizontally but stays at a fixed vertical position
+        // This keeps the floor at the bottom of the screen
+        float cameraY = 1.0f; // Fixed camera height (adjust as needed)
+        glm::mat4 view = glm::lookAt(
+            glm::vec3(ship->getPosition().x, cameraY, 1.0f),
+            glm::vec3(ship->getPosition().x, cameraY, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
 
-        glm::mat4 projection = glm::ortho(-aspect, aspect, -1.0f, 1.0f, -1.0f, 1.0f);
+        // Orthographic projection for 2D side-scroller
+        float zoom = 2.0f;
+        glm::mat4 projection = glm::ortho(
+            -zoom * aspect,  // left
+            zoom * aspect,   // right
+            -zoom,           // bottom (this is where floor should be visible)
+            zoom,            // top
+            0.1f,
+            100.0f
+        );
+
         return projection * view * model;
     }
 
@@ -77,7 +103,6 @@ namespace gl3 {
         unsigned int VAO;
         glGenVertexArrays(1, &VAO);
         glBindVertexArray(VAO);
-
 
         std::mt19937 randomNumberEngine{
             static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count())
@@ -93,58 +118,82 @@ namespace gl3 {
             auto randomColor = glm::vec4(c, c, c, 1.0f);
         }
 
+        // Create a much wider floor for continuous side-scrolling
+        // Position floor at y = 0 (will be at bottom with camera at y=1.0)
+        float floorWidth = 100.0f; // Very wide floor
+        float floorHeight = 0.1f;   // Thin floor
 
         auto floor = std::make_unique<Floor>(
-            glm::vec3(0.0f, -1.0f + 0.05f, 0.0f), // center X at 0, place near bottom (y=-1 + halfHeight)
-            glm::vec3(aspect, 0.05f, 1.0f), // full width (halfwidth=aspect), thin height
-            glm::vec4(1, 0, 0, 1),
+            glm::vec3(0.0f, 0.0f, 0.0f),           // Center at y=0
+            glm::vec3(floorWidth, floorHeight, 1.0f), // Wide and thin
+            glm::vec4(0.5f, 0.3f, 0.1f, 1.0f),     // Brown color for ground
             physicsWorld
         );
+
         std::cout << "=== FLOOR DEBUG ===" << std::endl;
         std::cout << "Floor position: " << floor->getPosition().y << std::endl;
         std::cout << "Floor half-height: " << floor->GetHalfHeight() << std::endl;
         std::cout << "Floor top Y: " << (floor->GetFloorY() + floor->GetHalfHeight()) << std::endl;
 
-        auto box = std::make_unique<Box>(glm::vec3(0.0f, (floor->GetFloorY() + floor->GetHalfHeight()+ 0.125f), 0.0f), glm::vec3(0.25f, 0.25f, 0.0f), glm::vec4(0.0f),
-                                         physicsWorld);
-        // Create ship at temporary position to get its half-height
-        auto spaceShip = std::make_unique<Ship>(glm::vec3(0.25f, 0.25f, 0.0f),
-                                                0.0f, glm::vec3(0.25f, 0.25f, 0.25f), physicsWorld);
-
-        std::cout << "\n=== SHIP DEBUG (at y=0) ===" << std::endl;
-        std::cout << "Ship half-height: " << spaceShip->shipHalfHeight << std::endl;
-        b2AABB shipAABB = b2Shape_GetAABB(spaceShip->shape);
-        std::cout << "Ship AABB at y=0: minY=" << shipAABB.lowerBound.y
-                << ", maxY=" << shipAABB.upperBound.y << std::endl;
-
-        // Calculate correct spawn position
+        // Create box on the floor
         float floorTop = floor->GetFloorY() + floor->GetHalfHeight();
+        // Box scale is the full width/height, Box class divides by 2 internally
+        // So scale.y = 0.25f means halfHeight = 0.125f
+        float boxScale = 0.25f;
+        float boxHalfHeight = boxScale / 2.0f;  // This matches what Box constructor does
+
+        auto box = std::make_unique<Box>(
+            glm::vec3(2.0f, floorTop + boxHalfHeight, 0.0f),
+            glm::vec3(boxScale, boxScale, 0.0f),
+            glm::vec4(0.8f, 0.2f, 0.2f, 1.0f),
+            physicsWorld
+        );
+
+        auto floorSwitch = std::make_unique<Switch>(
+            glm::vec3(1.0f, floorTop, 0.0f),
+            glm::vec3(0.3f,0.07f, 0.0f),
+            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+            physicsWorld
+            );
+
+        auto door = std::make_unique<Door>(glm::vec3(4.0f, floorTop + boxHalfHeight, 0.0f),
+            glm::vec3(0.25f,1.1f, 0.0f),
+            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+            physicsWorld
+            );
+
+        doorptr = door.get(); //store pointer before move
+
+        // Create ship at temporary position to get its half-height
+        auto spaceShip = std::make_unique<Ship>(
+            glm::vec3(0.25f, 0.25f, 0.0f),
+            0.0f,
+            glm::vec3(0.25f, 0.25f, 0.25f),
+            physicsWorld
+        );
+
+        std::cout << "\n=== SHIP DEBUG ===" << std::endl;
+        std::cout << "Ship half-height: " << spaceShip->shipHalfHeight << std::endl;
+
+        // Calculate correct spawn position (just above floor)
         float correctY = floorTop + spaceShip->shipHalfHeight;
-        float boxCorrectY = floorTop + box->GetHalfHeight();
 
-        std::cout << "\n=== SPAWN CALCULATION ===" << std::endl;
-        std::cout << "Calculated correctY: " << correctY << std::endl;
+        std::cout << "Calculated spawn Y: " << correctY << std::endl;
 
-        // Set the position
-        spaceShip->setPosition(glm::vec3(0.5f, correctY, 0.0f));
-        //box->setPosition(glm::vec3(0.2f, boxCorrectY, 0.0f));
+        // Set the ship position
+        spaceShip->setPosition(glm::vec3(0.0f, correctY, 0.0f));
 
-
-        std::cout << "\n=== AFTER setPosition ===" << std::endl;
+        std::cout << "\n=== AFTER POSITIONING ===" << std::endl;
         glm::vec3 pos = spaceShip->getPosition();
-        std::cout << "Ship render position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        std::cout << "Ship render position: (" << pos.x << ", " << pos.y << ")" << std::endl;
 
         b2Vec2 bodyPos = b2Body_GetPosition(spaceShip->getBody());
-        std::cout << "Ship physics body position: (" << bodyPos.x << ", " << bodyPos.y << ")" << std::endl;
-
-        shipAABB = b2Shape_GetAABB(spaceShip->shape);
-        std::cout << "Ship AABB after reposition: minY=" << shipAABB.lowerBound.y
-                << ", maxY=" << shipAABB.upperBound.y << std::endl;
-        std::cout << "Ship bottom should be at: " << shipAABB.lowerBound.y
-                << " | Floor top is at: " << floorTop << std::endl;
+        std::cout << "Ship physics position: (" << bodyPos.x << ", " << bodyPos.y << ")" << std::endl;
 
         ship = spaceShip.get();
         entities.push_back(std::move(floor));
+        entities.push_back(std::move(floorSwitch));
+        entities.push_back(std::move(door));
         entities.push_back(std::move(spaceShip));
         entities.push_back(std::move(box));
 
@@ -156,11 +205,9 @@ namespace gl3 {
 
         glfwSetTime(1.0 / 60);
 
-
         spriteShader = std::make_unique<gl3::Shader>(
             "shaders/vertexShader.vert",
             "shaders/fragmentShader.frag");
-
 
         while (!glfwWindowShouldClose(window)) {
             update();
@@ -181,40 +228,52 @@ namespace gl3 {
         for (auto &entity: entities) {
             entity->update(this, deltaTime);
         }
+
         b2ContactEvents contactEvents = b2World_GetContactEvents(physicsWorld);
+
 
         for (int i = 0; i < contactEvents.beginCount; ++i) {
             b2ContactBeginTouchEvent* beginEvent = contactEvents.beginEvents + i;
             ShapesStartTouching(beginEvent->shapeIdA, beginEvent->shapeIdB);
+            //std::cout << contactEvents.beginCount << std::endl;
+        }
 
+        for (int i = 0; i < contactEvents.endCount; ++i) {
+            b2ContactEndTouchEvent* endEvent = contactEvents.endEvents + i;
+            if (b2Shape_IsValid(endEvent->shapeIdA) && b2Shape_IsValid(endEvent->shapeIdB)) {
+                ShapesStopTouching(endEvent->shapeIdA, endEvent->shapeIdB);
+            }
+        }
+        b2SensorEvents sensorEvents = b2World_GetSensorEvents(physicsWorld);
+
+
+        for (int i = 0; i < sensorEvents.beginCount; ++i) {
+
+            std::cout << "ARE WE EVEN DOING ANYTHING????" << std::endl;
+            b2SensorBeginTouchEvent* beginEvent = sensorEvents.beginEvents + i;
+            std::cout << "BEFORE CALLING SENSORSSTARTSENSING" << std::endl;
+            std::cout << sensorEvents.beginCount << std::endl;
+            SensorStartsSensing(beginEvent->sensorShapeId, beginEvent->visitorShapeId);
 
         }
 
-            for (int i = 0; i < contactEvents.endCount; ++i)
-            {
-                b2ContactEndTouchEvent* endEvent = contactEvents.endEvents + i;
+        for (int i = 0; i < sensorEvents.endCount; ++i) {
 
-                // Use b2Shape_IsValid because a shape may have been destroyed
-                if (b2Shape_IsValid(endEvent->shapeIdA) && b2Shape_IsValid(endEvent->shapeIdB))
-                {
-                    ShapesStopTouching(endEvent->shapeIdA, endEvent->shapeIdB);
-                }
-            }
-
-
+            b2SensorEndTouchEvent* endEvent = sensorEvents.endEvents + i;
+            SensorStopsSensing(endEvent->sensorShapeId, endEvent->visitorShapeId);
+        }
     }
-    //CONTINUE HERE, we call startContact, in there we should probably check  what we´re colliding with, or maybe change a flag and give that to the update method
+
     void Game::ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB) {
-        // Check if shapes are still valid
         if (!b2Shape_IsValid(shape_idA) || !b2Shape_IsValid(shape_idB)) {
             return;
         }
 
         void* userDataA = b2Shape_GetUserData(shape_idA);
+        std::cout << "User Data A: " << userDataA << std::endl;
         void* userDataB = b2Shape_GetUserData(shape_idB);
+        std::cout << "User Data B: " << userDataB << std::endl;
 
-
-        // Check if userData exists
         if (!userDataA || !userDataB) {
             return;
         }
@@ -222,30 +281,21 @@ namespace gl3 {
         Entity* entityA = static_cast<Entity*>(userDataA);
         Entity* entityB = static_cast<Entity*>(userDataB);
 
-        //Now we can check types and call methods
         if (entityA->getType() == EntityType::Player &&
             entityB->getType() == EntityType::Box) {
-            Box* box = static_cast<Box*>(entityB); //safe because we know its a box
-
+            Box* box = static_cast<Box*>(entityB);
             box->startContact();
-
-
         }
-        // DON'T FORGET THE REVERSE CASE!
         else if (entityA->getType() == EntityType::Box &&
                  entityB->getType() == EntityType::Player) {
             Box* box = static_cast<Box*>(entityA);
-
             box->startContact();
-
-                 }
+        }
 
 
     }
 
     void Game::ShapesStopTouching(b2ShapeId shape_idA, b2ShapeId shape_idB) {
-        std::cout << "Buh!" << std::endl;
-        // Check if shapes are still valid
         if (!b2Shape_IsValid(shape_idA) || !b2Shape_IsValid(shape_idB)) {
             return;
         }
@@ -253,8 +303,6 @@ namespace gl3 {
         void* userDataA = b2Shape_GetUserData(shape_idA);
         void* userDataB = b2Shape_GetUserData(shape_idB);
 
-
-        // Check if userData exists
         if (!userDataA || !userDataB) {
             return;
         }
@@ -263,22 +311,75 @@ namespace gl3 {
         Entity* entityB = static_cast<Entity*>(userDataB);
 
         if (entityA->getType() == EntityType::Player &&
-     entityB->getType() == EntityType::Box) {
-
+            entityB->getType() == EntityType::Box) {
             Box* box = static_cast<Box*>(entityB);
             box->endContact();
-     }
-
+            }
         else if (entityA->getType() == EntityType::Box &&
                  entityB->getType() == EntityType::Player) {
-
             Box* box = static_cast<Box*>(entityA);
             box->endContact();
                  }
+
+
+
+    }
+    void Game::SensorStartsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId) {
+        if (!b2Shape_IsValid(sensorShapeId) || !b2Shape_IsValid(visitorShapeId)) {
+            return;
+        }
+
+
+        void* sensorUserData = b2Shape_GetUserData(sensorShapeId);
+        void* visitorUserData = b2Shape_GetUserData(visitorShapeId);
+
+        if (!sensorUserData || !visitorUserData) {
+            std::cout << "Invalid sensor user data!" << std::endl;
+            return;
+        }
+
+        Entity* sensorEntity = static_cast<Entity*>(sensorUserData);
+        Entity* visitorEntity = static_cast<Entity*>(visitorUserData);
+
+        if (sensorEntity->getType() == EntityType::Switch)  {
+            Switch* switchEntity = static_cast<Switch*>(sensorEntity);
+
+            if (b2Body_GetType(visitorEntity->getBody()) == b2_dynamicBody) {
+               doorptr->openDoor();
+                std::cout << "Dynamic body has come in contact with switch" << std::endl;
+            }
+        }
+
+
+
     }
 
+    void Game::SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId) {
+        if (!b2Shape_IsValid(sensorShapeId) || !b2Shape_IsValid(visitorShapeId)) {
+            return;
+        }
+
+        void* sensorUserData = b2Shape_GetUserData(sensorShapeId);
+        void* visitorUserData = b2Shape_GetUserData(visitorShapeId);
+
+        if (!sensorUserData || !visitorUserData) {
+            return;
+        }
+
+        Entity* sensorEntity = static_cast<Entity*>(sensorUserData);
+        Entity* visitorEntity = static_cast<Entity*>(visitorUserData);
+
+        if (sensorEntity->getType() == EntityType::Switch)  {
+            Switch* switchEntity = static_cast<Switch*>(sensorEntity);
+
+            if (b2Body_GetType(visitorEntity->getBody()) == b2_dynamicBody) {
+                doorptr->closeDoor();
+                std::cout << "Dynamic body has come in contact with switch" << std::endl;
+            }
+        }
 
 
+    }
 
     void Game::draw() {
         glClearColor(0.172f, 0.243f, 0.313f, 1.0f);
@@ -288,7 +389,6 @@ namespace gl3 {
             entity->draw(this);
         }
 
-
         glfwSwapBuffers(window);
     }
 
@@ -297,17 +397,19 @@ namespace gl3 {
         deltaTime = frameTime - lastFrameTime;
         lastFrameTime = frameTime;
     }
-
     void Game::updatePhysics() {
         const float fixedTimeStep = 1.0f / 60.0f;
-        const int subStepCount = 4; // recommended sub-step count
+        const int subStepCount = 4;
         accumulator += deltaTime;
         if (accumulator >= fixedTimeStep) {
             b2World_Step(physicsWorld, fixedTimeStep, subStepCount);
             ContactListener::checkForCollision(physicsWorld);
 
-            // Update the entities based on what happened in the physics step
+            // DEBUG: Identify each entity
+            int entityCount = 0;
             for (const std::unique_ptr<Entity> &entity: entities) {
+                // std::cout << "Physics updating entity " << entityCount++
+                //           << " type: " << static_cast<int>(entity->getType()) << std::endl;
                 entity->updateBasedOnPhysics();
             }
             accumulator -= fixedTimeStep;

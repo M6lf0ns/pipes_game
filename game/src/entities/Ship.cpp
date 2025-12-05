@@ -16,6 +16,7 @@ namespace gl3 {
     float gl3::Ship::playerVelX;
     glm::vec3 gl3::Ship::playerPos;
 
+
     Ship::Ship(glm::vec3 position, float zRotation, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
             Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
             position,
@@ -65,6 +66,7 @@ namespace gl3 {
 
         else {
             vel.x = 0.0f;
+            //b2Body_SetLinearVelocity(body, vel);  // ← ADD THIS LINE!
 
         }
         // Flip sprite horizontally based on movement direction
@@ -74,12 +76,14 @@ namespace gl3 {
             sprite.setScale(glm::vec3(-abs(sprite.getScale().x), sprite.getScale().y, sprite.getScale().z));
         }
 
+        bool canJump = (abs(vel.y) < 0.1f); // effectively zero
         bool spacePressed = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-        //vertical movement
-        if(spacePressed && !spaceWasPressed) {
-            b2Body_ApplyLinearImpulseToCenter(body, {0.0f, 5.0f}, true);
-        }
+        bool spaceJustPressed = spacePressed && !spaceWasPressed;
         spaceWasPressed = spacePressed;
+
+        if (spaceJustPressed && canJump) {
+            b2Body_ApplyLinearImpulseToCenter(body, {0.0f, 3.0f}, true);
+        }
 
 
         // E key for pushing
@@ -87,9 +91,12 @@ namespace gl3 {
 
         playerVelX = vel.x;
 
+
+
+       // updateBasedOnPhysics();
+
         playerPos = position;
 
-        updateBasedOnPhysics();
 
         // Prevent any rotation
         b2Body_SetAngularVelocity(body, 0);
@@ -100,37 +107,37 @@ namespace gl3 {
 
     void Ship::draw(Game *game) {
 
-        // Debug: check rendered sprite bounds
-        glm::vec3 spritePos = sprite.getPosition();
-        glm::vec3 spriteScale = sprite.getScale();
+        Entity::draw(game);
 
-        float spriteBottom = spritePos.y - spriteScale.y / 2.0f;
-        float spriteTop = spritePos.y + spriteScale.y / 2.0f;
 
-        // std::cout << "Sprite bounds - Bottom: " << spriteBottom << " Top: " << spriteTop << std::endl;
-        // std::cout << "Sprite position Y: " << spritePos.y << " Scale Y: " << spriteScale.y << std::endl;
+        sprite.draw(shader,game);
+        // std::cout << "SHIP - World Pos: " << position.x << ", " << position.y
+        //   << " Screen Pos: " << sprite.getPosition().x << ", " << sprite.getPosition().y << std::endl;
 
-        sprite.draw(shader);
-        // Debug: print the MVP matrix
-        // debug print only once
-        static bool printed = false;
-        if (!printed) {
-            glm::mat4 mvp = game->calculateMvpMatrix(sprite.getPosition(), 0.0f, sprite.getScale());
-            std::cout << "Ship MVP:\n" << glm::to_string(mvp) << std::endl;
-            printed = true;  // ensures this block never runs again
+
+
         }
 
 
 
-    }
+
 
     void Ship::createPhysicsBody()
     {
+
+        std::cout << "Box: physicsWorld.index1 = " << physicsWorld.index1 << std::endl;
+
+        if (physicsWorld.index1 < 1 || physicsWorld.index1 > 32) {
+            std::cout << "ERROR: Box has invalid physicsWorld!" << std::endl;
+            throw std::runtime_error("Invalid physics world in Box");
+        }
         b2BodyDef bodyDef = b2DefaultBodyDef();
+        bodyDef.enableSleep = false; // Prevent body from sleeping
         bodyDef.type = b2_dynamicBody;
         bodyDef.position = {position.x, position.y};
         bodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &bodyDef);
+
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
 
@@ -140,6 +147,11 @@ namespace gl3 {
 
         b2Polygon box = b2MakeBox(halfWidth, halfHeight);
         shape = b2CreatePolygonShape(body, &shapeDef, &box);
+        b2Shape_EnableContactEvents(shape, true);
+        b2Shape_EnableSensorEvents(shape, true);
+        b2Shape_SetUserData(shape, this);
+        b2Shape_SetFriction(shape, 0.5f);
+        b2Shape_SetRestitution(shape, 0.0f); // optional: no bounce
 
         // Debug
         b2AABB aabb = b2Shape_GetAABB(shape);
@@ -158,11 +170,14 @@ namespace gl3 {
                   << ") rotation: " << transform.q.s << std::endl;
 
         b2MassData massData;
-        massData.mass = 1.5f;
+        massData.mass = 1.0f;
         massData.center = b2Vec2{0.0f, 0.0f};
         massData.rotationalInertia = 0.0f; // must be explicitly set
         b2Body_SetMassData(body, massData);
-        b2Body_SetLinearDamping(body, 5.0f); // tweak this value
+        b2Body_SetLinearDamping(body, 2.0f); // tweak this value
+
+
+
     }
 
     void Ship::updateBasedOnPhysics()
@@ -170,6 +185,8 @@ namespace gl3 {
         Entity::updateBasedOnPhysics();
         //setting the sprite´s position, can be avoided if we add Sprite to Entity
         //would not need to be overriden anymore
+        // static int counter = 0;
+        // std::cout << "Ship updateBasedOnPhysics call #" << ++counter << std::endl;
         b2Vec2 bodyPos = b2Body_GetPosition(body);
         position.x = bodyPos.x;
         position.y = bodyPos.y;

@@ -28,9 +28,13 @@ namespace gl3 {
 
     void Entity::draw(Game *game) {
         auto mvpMatrix = game->calculateMvpMatrix(position, zRotation, scale);
-        shader.use();
-        shader.setMatrix("mvp", mvpMatrix);
-        shader.setVector("color", color);
+
+        // // DEBUG: Check what's being set
+        // std::cout << "ENTITY MVP SET - Position: (" << position.x << ", " << position.y << ")" << std::endl;
+        // std::cout << "Camera target: (" << Ship::playerPos.x << ", " << Ship::playerPos.y << ")" << std::endl;
+        // shader.use();
+        // shader.setMatrix("mvp", mvpMatrix);
+        // shader.setVector("color", color);
 
     }
 
