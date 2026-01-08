@@ -34,8 +34,9 @@ namespace gl3{
         [[nodiscard]] b2ShapeId getShape() const;
         virtual void updateBasedOnPhysics();
         virtual void startContact();
+        virtual void resetState() {};
 
-        [[nodiscard]] EntityType getType() const { return type; }
+        [[nodiscard]] virtual EntityType getType() const { return type; }
 
 
     protected:

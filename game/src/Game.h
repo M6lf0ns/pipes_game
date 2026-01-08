@@ -25,13 +25,14 @@ namespace gl3 {
         float aspect = 0.0f;
 
 
-        static bool shapesAreTouching;
+
         void ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
         void ShapesStopTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
         void SensorStartsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
         void SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
 
     private:
+        bool firstFrame = true;
         std::unique_ptr<gl3::Shader> spriteShader;
         static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
         void update();
@@ -44,6 +45,8 @@ namespace gl3 {
         std::vector<std::unique_ptr<Entity>> entities;
         Ship *ship = nullptr;
         Door *doorptr = nullptr;
+        int boxOnPlateCount = 0;
+        int playerOnPlateCount = 0;
         SoLoud::Soloud audio;
         std::unique_ptr<SoLoud::Wav> backgroundMusic;
         float lastFrameTime = 1.0f/60;

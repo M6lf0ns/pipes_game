@@ -33,6 +33,8 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Switch.h
         src/entities/Door.cpp
         src/entities/Door.h
+        src/ResourceManager.cpp
+        src/ResourceManager.h
 
 )
 

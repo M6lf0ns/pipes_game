@@ -71,18 +71,14 @@ namespace gl3 {
         b2ShapeDef boxShapeDef = b2DefaultShapeDef();
         shape = b2CreatePolygonShape(body, &boxShapeDef, &box);
         //b2Shape_SetUserData(shape, this);             // <<< IMPORTANT: let contact system identify this Box
-        b2Shape_SetFriction(shape, 0.8f); // friction of box sides/bottom
-        b2Shape_SetRestitution(shape, 0.1f);
+        b2Shape_SetFriction(shape, 0.1f); // friction of box sides/bottom
+        b2Shape_SetRestitution(shape, 0.05f);
+        b2Shape_SetDensity(shape, 500.0f, true);
         b2Shape_EnableContactEvents(shape,true);
         b2Shape_EnableSensorEvents(shape, true);
         b2Shape_SetUserData(shape, this);
 
 
-        b2MassData massData;
-        massData.mass = 20.0f;
-        massData.center = b2Vec2{0.0f, 0.0f};
-        massData.rotationalInertia = 0.1f;
-        b2Body_SetMassData(body, massData);
         b2Body_SetLinearDamping(body, 5.0f);
 
 
@@ -116,8 +112,12 @@ namespace gl3 {
 
     void Box::update(Game *game, float deltaTime)
     {
-        if (isTouchingPlayer && Ship::push_PullKeyPressed)
+        if (ignoreFirstContacts) ignoreFirstContacts = false;
+        std::cout << "Is box touching player? " << playerContactCount << std::endl;
+        if (playerContactCount > 0 && Ship::push_PullKeyPressed && isActuallyTouchingPlayer(game->getShip()))
         {
+
+
             b2Body_SetAwake(body, true);
 
             float playerVelX = Ship::playerVelX;
@@ -149,10 +149,12 @@ namespace gl3 {
         }
         else
         {
+
             // RELEASE: Stop immediately
             b2Vec2 vel = b2Body_GetLinearVelocity(body);
-            b2Body_SetLinearVelocity(body, {0.0f, vel.y});
-            b2Shape_SetFriction(shape, 10000.0f);
+            vel.x *= 0.95f;  // Slow down naturally
+            b2Body_SetLinearVelocity(body, vel);
+            b2Shape_SetFriction(shape, 0.8f);
         }
 
         // Sleep when stationary
@@ -188,7 +190,8 @@ namespace gl3 {
     }
 
     void Box::startContact() {
-       isTouchingPlayer = true;
+        if (ignoreFirstContacts) return;
+       playerContactCount++;
         std::cout << "[Box::startContact] this=" << this
               << " bodyType=" << b2Body_GetType(body)
               << " pos=(" << b2Body_GetPosition(body).x << "," << b2Body_GetPosition(body).y << ")"
@@ -198,8 +201,15 @@ namespace gl3 {
     }
 
     void Box::endContact() {
-        isTouchingPlayer = false;
+        if (playerContactCount > 0) playerContactCount--;
         std::cout << "[Box::endContact] this=" << this << std::endl;
+    }
+    // ← Add this
+    bool Box::isActuallyTouchingPlayer(Ship* player) {
+        glm::vec3 diff = this->position - player->getPosition();
+        float allowedX = 0.5f;
+        float allowedY = 0.5f;
+        return abs(diff.x) <= allowedX && abs(diff.y) <= allowedY;
     }
 
     // void Box::DebugDraw() {

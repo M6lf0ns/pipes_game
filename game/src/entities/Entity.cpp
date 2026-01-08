@@ -46,6 +46,8 @@ namespace gl3 {
         return shape;
     }
 
+
+
     void Entity::updateBasedOnPhysics() {
         if(!b2Body_IsValid(body))
             return;
