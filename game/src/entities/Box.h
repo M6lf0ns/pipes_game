@@ -1,9 +1,11 @@
 #pragma once
 #include "Entity.h"
+#include "Ship.h"
 #include "../Sprite.h"
 #include "box2d/types.h"
 
 namespace gl3 {
+
 
     class Box: public Entity{
         public:
@@ -15,6 +17,10 @@ namespace gl3 {
         void updateBasedOnPhysics() override;
         [[nodiscard]] float GetHalfHeight() const;
         //void DebugDraw();
+        [[nodiscard]] EntityType getType() const override {
+            return EntityType::Box;
+        }
+        bool isActuallyTouchingPlayer (Ship* player); ;
 
 
 
@@ -23,10 +29,11 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        bool ignoreFirstContacts = true;
         Sprite sprite;
         float halfWidth = 0.0f, halfHeight = 0.0f;
         bool isMovable = false;
-        bool isTouchingPlayer = false;
+        int playerContactCount = 0;
         float stillTime = 0.0f;              // how long the box has been still
         const float stillThreshold = 0.2f;   // time required before freezing again
 

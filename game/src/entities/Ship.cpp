@@ -44,7 +44,7 @@ namespace gl3 {
 
         auto body = getBody();
 
-        float maxSpeed = 1.0f;
+        float maxSpeed = 0.8f;
 
         vel = b2Body_GetLinearVelocity(body); //get current velocity
 
@@ -84,6 +84,20 @@ namespace gl3 {
         if (spaceJustPressed && canJump) {
             b2Body_ApplyLinearImpulseToCenter(body, {0.0f, 3.0f}, true);
         }
+
+        // //Dashing
+        // float timeElapsed = 0.0f;
+        // bool dashPressed = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+        // if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) && dashPressed ) {
+        //     vel.x -= 0.2f;
+        //    timeElapsed += deltaTime;
+        //     if (timeElapsed > 0.02f) {
+        //         vel.x = -translationSpeed;
+        //
+        //     }
+        //
+        // }
+
 
 
         // E key for pushing

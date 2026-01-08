@@ -19,7 +19,7 @@
 
 namespace gl3 {
 
-    bool gl3::Game::shapesAreTouching = false;
+
 
     void Game::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
         glViewport(0, 0, width, height);
@@ -166,7 +166,7 @@ namespace gl3 {
 
         // Create ship at temporary position to get its half-height
         auto spaceShip = std::make_unique<Ship>(
-            glm::vec3(0.25f, 0.25f, 0.0f),
+            glm::vec3(0.0f, 0.25f, 0.0f),
             0.0f,
             glm::vec3(0.25f, 0.25f, 0.25f),
             physicsWorld
@@ -208,6 +208,7 @@ namespace gl3 {
         spriteShader = std::make_unique<gl3::Shader>(
             "shaders/vertexShader.vert",
             "shaders/fragmentShader.frag");
+
 
         while (!glfwWindowShouldClose(window)) {
             update();
@@ -281,14 +282,19 @@ namespace gl3 {
         Entity* entityA = static_cast<Entity*>(userDataA);
         Entity* entityB = static_cast<Entity*>(userDataB);
 
+        Box* box = nullptr;
         if (entityA->getType() == EntityType::Player &&
             entityB->getType() == EntityType::Box) {
-            Box* box = static_cast<Box*>(entityB);
-            box->startContact();
+            box = static_cast<Box*>(entityB);
+
         }
         else if (entityA->getType() == EntityType::Box &&
                  entityB->getType() == EntityType::Player) {
-            Box* box = static_cast<Box*>(entityA);
+            box = static_cast<Box*>(entityA);
+
+            std::cout << "Start Contact function called " << std::endl;
+        }
+        if (box) {
             box->startContact();
         }
 
@@ -310,16 +316,21 @@ namespace gl3 {
         Entity* entityA = static_cast<Entity*>(userDataA);
         Entity* entityB = static_cast<Entity*>(userDataB);
 
+        Box* box = nullptr;
         if (entityA->getType() == EntityType::Player &&
             entityB->getType() == EntityType::Box) {
-            Box* box = static_cast<Box*>(entityB);
-            box->endContact();
+            box = static_cast<Box*>(entityB);
+
             }
         else if (entityA->getType() == EntityType::Box &&
                  entityB->getType() == EntityType::Player) {
-            Box* box = static_cast<Box*>(entityA);
-            box->endContact();
+            box = static_cast<Box*>(entityA);
+
+            std::cout << "End Contact function called " << std::endl;
                  }
+        if (box) {
+            box->endContact();
+        }
 
 
 
@@ -345,7 +356,15 @@ namespace gl3 {
             Switch* switchEntity = static_cast<Switch*>(sensorEntity);
 
             if (b2Body_GetType(visitorEntity->getBody()) == b2_dynamicBody) {
-               doorptr->openDoor();
+                if (visitorEntity->getType() == EntityType::Box) {
+                    boxOnPlateCount += 1;
+                }else if (visitorEntity->getType() == EntityType::Player) {
+                    playerOnPlateCount += 1;
+                }
+                if (boxOnPlateCount >= 1 || playerOnPlateCount >= 1) {
+                    doorptr->openDoor();
+                }
+
                 std::cout << "Dynamic body has come in contact with switch" << std::endl;
             }
         }
@@ -372,8 +391,17 @@ namespace gl3 {
         if (sensorEntity->getType() == EntityType::Switch)  {
             Switch* switchEntity = static_cast<Switch*>(sensorEntity);
 
+            //in order to avoid door closing when player gets off pressure plate, we check if anyone´s still on there
             if (b2Body_GetType(visitorEntity->getBody()) == b2_dynamicBody) {
-                doorptr->closeDoor();
+                if (visitorEntity->getType() == EntityType::Box) {
+                    boxOnPlateCount -= 1;
+                }else if (visitorEntity->getType() == EntityType::Player) {
+                    playerOnPlateCount -= 1;
+                }
+                if ((boxOnPlateCount < 1 && playerOnPlateCount < 1 )) {
+                    doorptr->closeDoor();
+                }
+
                 std::cout << "Dynamic body has come in contact with switch" << std::endl;
             }
         }
