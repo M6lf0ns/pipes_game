@@ -1,25 +1,22 @@
 
 #include "Switch.h"
-
+#include "../PhysicsCategories.h"
 #include <iostream>
 
 #include "../rendering/Texture.h"
 #include "box2d/box2d.h"
 
 namespace gl3 {
-    Switch::Switch(glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
-        :Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
+    Switch::Switch(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+        :Entity(shader,
             position,
-            0,
             scale,
             color,
             physicsWorld,
-              EntityType::Switch),
-    sprite(position, scale, Texture::LoadTexture("assets/textures/simple_square2.png"))
-
+              EntityType::Switch)
 
     {
-
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/simple_square2.png"));
         //assuming scale.x and scale.y already halfheight and -width
         halfHeight = scale.y / 2.0f;
         halfWidth = scale.x / 2.0f;
@@ -49,8 +46,10 @@ namespace gl3 {
         b2Polygon groundSwitch = b2MakeBox(halfWidth, halfHeight);
 
         b2ShapeDef groundSwitchShapeDef = b2DefaultShapeDef();
+        groundSwitchShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_SWITCH;
         groundSwitchShapeDef.isSensor = true;
 
+        groundSwitchShapeDef.userData = this;
         // ✅ CREATE shape FIRST
         shape = b2CreatePolygonShape(body, &groundSwitchShapeDef, &groundSwitch);
 
@@ -62,11 +61,6 @@ namespace gl3 {
         std::cout << "Switch shape userData = " << ud << std::endl;
     }
 
-    void Switch::draw(Game *game) {
-        Entity::draw(game);
-        sprite.draw(shader, game);
-
-    }
 
     float Switch::getHalfHeight() const {
         return halfHeight;

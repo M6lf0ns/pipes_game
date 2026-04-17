@@ -59,6 +59,19 @@ namespace gl3 {
         auto uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
         glUniform4fv(uniformLocation, 1, glm::value_ptr(vector));
     }
+    void Shader::setBool(const std::string &name, bool value) const {
+        // 1. Find where 'useTexture' (or whatever name) lives in the shader
+        GLint location = glGetUniformLocation(shaderProgram, name.c_str());
+
+        // 2. If the location is -1, the uniform doesn't exist or was optimized away
+        if (location != -1) {
+            // 3. Upload the bool as an integer (0 or 1)
+            glUniform1i(location, (int)value);
+        } else {
+            // This is helpful for debugging if you have a typo in your shader string
+            // std::cerr << "Uniform '" << name << "' not found in shader!" << std::endl;
+        }
+    }
 
     void Shader::use() const {
         glUseProgram(shaderProgram);

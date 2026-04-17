@@ -4,25 +4,26 @@
 #include "../Game.h"
 #include "box2d/box2d.h"
 #include "../rendering/Texture.h"
+#include "../PhysicsCategories.h"
 
 namespace gl3 {
 
-    Floor::Floor(glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
-       : Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
+    Floor::Floor(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+       : Entity(shader,
                 position,
-                0,
                 scale,
                 color,
                 physicsWorld,
-                EntityType::Floor),
-                sprite(position,scale, Texture::LoadTexture("assets/textures/simple_square.png"))
+                EntityType::Floor)
 
     {
+        this->sprite = new Sprite(position,scale, Texture::LoadTexture("assets/textures/simple_square.png"));
+
 
         Floor::createPhysicsBody();
         // Align sprite center with physics body
-        sprite.setPosition(glm::vec3(position.x, floorY, 0.0f));
-        sprite.setScale(glm::vec3(halfWidth * 2, floorHalfHeight * 2, 1.0f)); // full width & height
+        sprite->setPosition(glm::vec3(position.x, floorY, 0.0f));
+        sprite->setScale(glm::vec3(halfWidth * 2, floorHalfHeight * 2, 1.0f)); // full width & height
 
 
         std::cout << "Created Floor at centerY=" << floorY << std::endl;
@@ -49,24 +50,24 @@ namespace gl3 {
 
         // Define body
         b2BodyDef groundBodyDef = b2DefaultBodyDef();
-        groundBodyDef.position = b2Vec2{ position.x, floorY }; // center of floor
-        groundBodyDef.userData = this;  // MOVED: set userData BEFORE creating body
-        body = b2CreateBody(physicsWorld, &groundBodyDef);  // FIXED: store body!
+        groundBodyDef.type = b2_staticBody; // <--- ADD THIS LINE
+        groundBodyDef.position = b2Vec2{ position.x, floorY };
+        groundBodyDef.userData = this;
+
+        body = b2CreateBody(physicsWorld, &groundBodyDef);
 
         // Define box shape (half sizes)
         b2Polygon groundBox = b2MakeBox(halfWidth, floorHalfHeight);
         b2ShapeDef groundShapeDef = b2DefaultShapeDef();
+        groundShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_FLOOR;
+        groundShapeDef.filter.maskBits = 0xFFFF;  // Floor collides with EVERYTHING
         shape = b2CreatePolygonShape(body, &groundShapeDef, &groundBox);  // FIXED: store shape!
         b2Shape_SetUserData(shape, this);  // FIXED: set user data on shape
         b2Shape_EnableContactEvents(shape, true);  // Now this works!
 
+
         std::cout << "Floor physics body created: centerY=" << floorY
                   << ", halfWidth=" << halfWidth << ", halfHeight=" << floorHalfHeight << std::endl;
-    }
-
-    void Floor::draw(Game *game) {
-        Entity::draw(game);
-        sprite.draw(shader, game);
     }
 
     float Floor::GetFloorY() const {
@@ -75,16 +76,6 @@ namespace gl3 {
 
     float Floor::GetHalfHeight() const {
         return floorHalfHeight;
-    }
-
-    void Floor::startContact() {
-
-
-    }
-
-    void Floor::endContact() {
-
-
     }
 
 }

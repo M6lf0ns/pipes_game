@@ -3,28 +3,28 @@
 #include "box2d/box2d.h"
 #include "box2d/types.h"
 #include <iostream>
+#include "../PhysicsCategories.h"
 
 namespace gl3 {
 
-    Door::Door(glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
-      :Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
+    Door::Door(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+      :Entity(shader,
           position,
-          0,
           scale,
           color,
           physicsWorld,
-          EntityType::Door),
-        sprite(position, scale, Texture::LoadTexture("assets/textures/door_square.png"))
+          EntityType::Door)
 
     {
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/door_square.png"));
         halfWidth = scale.x / 2.0f;
         halfHeight = scale.y / 2.0f;
 
         Door::createPhysicsBody();
 
         //Align sprite center with physicsbody
-        sprite.setPosition(glm::vec3(position.x,position.y,0.0f));
-        sprite.setScale(glm::vec3(halfWidth * 2, halfHeight * 2, 1.0f)); //full width and height
+        sprite->setPosition(glm::vec3(position.x,position.y,0.0f));
+        sprite->setScale(glm::vec3(halfWidth * 2, halfHeight * 2, 1.0f)); //full width and height
     }
 
     void Door::createPhysicsBody() {
@@ -37,6 +37,12 @@ namespace gl3 {
 
         b2Polygon doorShape = b2MakeBox(halfWidth, halfHeight);
         b2ShapeDef doorShapeDef = b2DefaultShapeDef();
+        doorShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_DOOR;
+        doorShapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
+                               gl3::PhysicsCategories::CATEGORY_SEC_BOT |
+                                   gl3::PhysicsCategories::CATEGORY_DOG; // <--- IMPORTANT
+        // 2. Ensure contact events are enabled (Box2D sometimes needs this for static bodies)
+        doorShapeDef.enableContactEvents = true;
         shape = b2CreatePolygonShape(body, &doorShapeDef, &doorShape);
         b2Shape_SetFriction(shape, 0.5f);
 
@@ -44,11 +50,11 @@ namespace gl3 {
         b2Shape_SetUserData(shape, this);
 
 
+
     }
 
     void Door::draw(Game *game) {
         Entity::draw(game);
-        sprite.draw(shader, game);
     }
 
 
@@ -66,7 +72,7 @@ namespace gl3 {
         // Optional: Change sprite to show open door
         // sprite = Sprite(position, scale, Texture::LoadTexture("assets/textures/door_open.png"));
         // Switch back to closed texture
-        sprite.setTexture(Texture::LoadTexture("assets/textures/open_door.png"));
+        sprite->setTexture(Texture::LoadTexture("assets/textures/open_door.png"));
 
     }
 
@@ -82,7 +88,7 @@ namespace gl3 {
 
         isDoorOpen = false;
         // Switch back to closed texture
-        sprite.setTexture(Texture::LoadTexture("assets/textures/door_square.png"));
+        sprite->setTexture(Texture::LoadTexture("assets/textures/door_square.png"));
 
         // Optional: Change sprite back
         // sprite = Sprite(position, scale, Texture::LoadTexture("assets/textures/door_closed.png"));

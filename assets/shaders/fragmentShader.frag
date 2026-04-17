@@ -1,11 +1,18 @@
 #version 460 core
 
 in vec2 TexCoords;
-uniform vec4 color;
 out vec4 fragColor;
 
+uniform vec4 spriteColor;
+uniform bool useTexture;
 uniform sampler2D spriteTexture;
 
 void main() {
-    fragColor = texture(spriteTexture, TexCoords);
+    if (useTexture) {
+        // Drawing a Sprite
+        fragColor = texture(spriteTexture, TexCoords) * spriteColor;
+    } else {
+        // Drawing the Trajectory Line (No Texture)
+        fragColor = spriteColor;
+    }
 }

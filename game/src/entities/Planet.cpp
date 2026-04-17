@@ -42,11 +42,10 @@ namespace gl3 {
     const glData glCircleData = getCircleVertices(0.075f);
 
     Planet::Planet(glm::vec3 position, float size, glm::vec4 color, b2WorldId physicsWorld)
-        : Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
+        : Entity(shader,
                  position,
-                 0,
-                 glm::vec3(size, size, size),
-                 color,
+                 glm::vec3(size, size, 0),
+                 glm::vec4(size, size, size, size),
                  physicsWorld)
     {
         Planet::createPhysicsBody();

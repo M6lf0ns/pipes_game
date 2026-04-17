@@ -1,5 +1,5 @@
 #pragma once
-
+#include "../Sprite.h"
 #include "glm/vec3.hpp"
 #include "../rendering/Shader.h"
 #include "box2d/id.h"
@@ -10,9 +10,8 @@ namespace gl3{
 
     class Entity {
     public:
-        explicit Entity(Shader shader,
+        explicit Entity(Shader* shader,
                glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
-               float zRotation = 0.0f,
                glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f),
                glm::vec4 color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
                b2WorldId physicsWorld = b2_nullWorldId,
@@ -25,13 +24,15 @@ namespace gl3{
         virtual void draw(Game *game);
 
         [[nodiscard]] const glm::vec3 &getPosition() const {return position; }
-        [[nodiscard]] float getZRotation() const { return zRotation; }
+        //[[nodiscard]] float getZRotation() const { return zRotation; }
         [[nodiscard]] const glm::vec3 &getScale() const { return scale; }
-        virtual void setPosition(const glm::vec3 &position) { Entity::position = position; }
+        virtual void setPosition(const glm::vec3 &position);
         void setZRotation(float zRotation) { Entity::zRotation = zRotation; }
         void setScale(const glm::vec3 &scale) { Entity::scale = scale; }
-        [[nodiscard]] b2BodyId getBody() const;
+        void setZOrder(int order) { zOrder = order; }
+        virtual b2BodyId getBody() const;
         [[nodiscard]] b2ShapeId getShape() const;
+        int getZOrder() const { return zOrder; }
         virtual void updateBasedOnPhysics();
         virtual void startContact();
         virtual void resetState() {};
@@ -40,6 +41,8 @@ namespace gl3{
 
 
     protected:
+        Sprite* sprite = nullptr;
+        int zOrder = 0;
         EntityType type;
         virtual void createPhysicsBody() = 0;
         glm::vec3 position;
@@ -49,7 +52,7 @@ namespace gl3{
         b2WorldId physicsWorld;
         b2BodyId body;
         b2ShapeId shape;
-        Shader shader;
+        Shader* shader;
     };
 }
 

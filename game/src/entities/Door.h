@@ -8,7 +8,7 @@ namespace gl3 {
 
     class Door: public Entity {
         public:
-        explicit Door(glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), glm::vec4 color = glm::vec4(1, 0, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
+        explicit Door(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), glm::vec4 color = glm::vec4(1, 0, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
         void draw(Game *game) override;
         void startContact() override;
         void openDoor();
@@ -23,7 +23,6 @@ namespace gl3 {
         void destroyPhysicsBody();
 
     private:
-        Sprite sprite;
         float halfWidth, halfHeight;
         bool isDoorOpen = false;
 

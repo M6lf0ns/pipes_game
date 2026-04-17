@@ -35,6 +35,13 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Door.h
         src/ResourceManager.cpp
         src/ResourceManager.h
+        src/entities/SecBot.cpp
+        src/entities/SecBot.h
+        src/PhysicsCategories.h
+        src/entities/Stick.cpp
+        src/entities/Stick.h
+        src/entities/Dog.cpp
+        src/entities/Dog.h
 
 )
 

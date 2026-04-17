@@ -8,24 +8,22 @@
 #include "Ship.h"
 #include "box2d/src/body.h"
 #include "../Game.h"
+#include "../PhysicsCategories.h"
 
 
 namespace gl3 {
 
 
-    Box::Box(glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
-        :Entity(Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
+    Box::Box(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+        :Entity(shader,
             position,
-            0,
             scale,
             color,
             physicsWorld,
-            EntityType::Box),
-    sprite(position, scale, Texture::LoadTexture("assets/textures/temp_box1.png"))
-
+            EntityType::Box)
 
     {
-
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/temp_box1.png"));
 
         halfWidth = scale.x / 2.0f;
         halfHeight = scale.y / 2.0f;
@@ -34,7 +32,7 @@ namespace gl3 {
 
         // Make sure sprite is initially at the physics body's position
         b2Vec2 bodyPos = b2Body_GetPosition(body);
-        sprite.setPosition(glm::vec3(bodyPos.x, bodyPos.y, position.z));
+        sprite->setPosition(glm::vec3(bodyPos.x, bodyPos.y, position.z));
 
     }
 
@@ -56,10 +54,10 @@ namespace gl3 {
 
         auto bodyPos = b2Body_GetTransform(body);
         std::cout << "POSITION BODY BOX " << bodyPos.p.x << " " << bodyPos.p.y << " " <<  std::endl;
-        glm::vec3 spritepos = sprite.getPosition();
+        glm::vec3 spritepos = sprite->getPosition();
         std::cout << "SPRITE POSITION BOX " << spritepos.x << spritepos.y << spritepos.z << std::endl;
         std::cout << "BOY HALFWIDTH " << halfWidth << "BOY HALFHEIGHT " << halfHeight << std::endl;
-        glm::vec3 spriteScale = sprite.getScale();
+        glm::vec3 spriteScale = sprite->getScale();
         float spriteWidth = spriteScale.x;
         float spriteHeight = spriteScale.y;
         std::cout << " WIDTH SPRITE " << spriteWidth << "HEIGHT SPRITE  " << spriteHeight << std::endl;
@@ -69,6 +67,14 @@ namespace gl3 {
         //Define box shape
         b2Polygon box = b2MakeBox(halfWidth, halfHeight);
         b2ShapeDef boxShapeDef = b2DefaultShapeDef();
+        boxShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_BOX;
+        boxShapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_FLOOR |
+                                  gl3::PhysicsCategories::CATEGORY_WALL |
+                                  gl3::PhysicsCategories::CATEGORY_DOG |
+                                      gl3::PhysicsCategories::CATEGORY_SEC_BOT |
+                                          gl3::PhysicsCategories::CATEGORY_STICK |
+                                              gl3::PhysicsCategories::CATEGORY_PLAYER |
+                                      gl3::PhysicsCategories::CATEGORY_DOOR;
         shape = b2CreatePolygonShape(body, &boxShapeDef, &box);
         //b2Shape_SetUserData(shape, this);             // <<< IMPORTANT: let contact system identify this Box
         b2Shape_SetFriction(shape, 0.1f); // friction of box sides/bottom
@@ -84,38 +90,15 @@ namespace gl3 {
 
     }
 
-    void Box::updateBasedOnPhysics() {
-
-        Entity::updateBasedOnPhysics();
-        // static int counter = 0;
-        // std::cout << "Box updateBasedOnPhysics call #" << ++counter << std::endl;
-        // //setting the sprite´s position, can be avoided if we add Sprite to Entity
-        // //would not need to be overriden anymore
-        //
-        // static int frameCount = 0;
-        b2Vec2 bodyPos = b2Body_GetPosition(body);
-        //
-        // // Log only when not touching player and ship is moving
-        // if (!isTouchingPlayer && std::abs(Ship::playerVelX) > 0.1f) {
-        //     if (frameCount++ % 30 == 0) { // Every 30 frames
-        //         std::cout << "BOX JITTER CHECK - Pos: (" << bodyPos.x << ", " << bodyPos.y
-        //                   << ") Vel: " << Ship::playerVelX
-        //                   << " Touching: " << isTouchingPlayer << std::endl;
-        //     }
-        // }
-
-        sprite.setPosition(glm::vec3(bodyPos.x, bodyPos.y, 0.0f));
-
-
-
-    }
 
     void Box::update(Game *game, float deltaTime)
     {
-        if (ignoreFirstContacts) ignoreFirstContacts = false;
-        std::cout << "Is box touching player? " << playerContactCount << std::endl;
-        if (playerContactCount > 0 && Ship::push_PullKeyPressed && isActuallyTouchingPlayer(game->getShip()))
+        float actualWidth = GetHalfWidth();
+        std::cout << "BOX WIDTH " << actualWidth << std::endl;
+        //std::cout << "Is box touching player? " << playerContactCount << std::endl;
+        if (playerContactCount > 0 && Ship::push_PullKeyPressed)
         {
+            float playerHalfWidth = GetHalfWidth();
 
 
             b2Body_SetAwake(body, true);
@@ -127,17 +110,39 @@ namespace gl3 {
 
             // Determine if pushing or pulling
             float playerToBoxX = boxPos.x - playerPosX;
+            float boxHalfWidth = this->halfWidth;    // Assuming box half-width is 0.125f
+
+            // Calculate the ideal distance (player body edge to box body edge)
+            // Ensure this matches how your player and box overlap to be considered 'touching'.
+            // This is the ideal separation we want to maintain.
+            float idealSeparation = playerHalfWidth + boxHalfWidth + 0.001f; // 0.251f total
+
+            // Determine if pushing or pulling (based on your existing logic)
             bool pushing = (playerVelX * playerToBoxX > 0); // moving toward box
             bool pulling = (playerVelX * playerToBoxX < 0); // moving away from box
 
             if (pulling)
             {
-                // PULLING: Instantly match player velocity (no lag)
-                b2Body_SetLinearVelocity(body, {playerVelX, currentVel.y});
+                // PULLING: Use velocity matching PLUS a correction to close any gap.
+
+                // Target X position: Player position minus the ideal separation distance,
+                // adjusted for the player's direction.
+                float desiredTargetCenterPositionX = playerPosX + (playerVelX > 0 ? -idealSeparation : idealSeparation);
+
+                // Calculate position error (the size of the gap)
+                float positionError = desiredTargetCenterPositionX - boxPos.x;
+
+                // Correction factor: How aggressively the box snaps back to the target position
+                const float PULL_CORRECTION_FACTOR = 30.0f;
+
+                // Calculate the velocity needed to match the player AND close the gap
+                float newVelX = playerVelX + positionError * PULL_CORRECTION_FACTOR;
+
+                b2Body_SetLinearVelocity(body, {newVelX, currentVel.y});
             }
             else if (pushing)
             {
-                // PUSHING: Smooth interpolation feels more natural
+                // PUSHING: Smooth interpolation (your original logic, which is fine for pushing)
                 float smoothFactor = 15.0f;
                 float newVelX = currentVel.x + (playerVelX - currentVel.x) * smoothFactor * deltaTime;
                 b2Body_SetLinearVelocity(body, {newVelX, currentVel.y});
@@ -173,7 +178,11 @@ namespace gl3 {
     }
 
     float Box::GetHalfHeight() const {
-        return halfHeight;
+        return Ship::playerHalfHeight;;
+    }
+
+    float Box::GetHalfWidth() const {
+        return Ship::playerHalfWidth;
     }
 
 
@@ -181,16 +190,17 @@ namespace gl3 {
 
     void Box::draw(Game *game) {
         Entity::draw(game);
-        sprite.draw(shader,game);
         // std::cout << "BOX - World Pos: " << position.x << ", " << position.y
         //   << " Screen Pos: " << sprite.getPosition().x << ", " << sprite.getPosition().y << std::endl;
         //
         // // glm::vec3 spriteScale = sprite.getScale();
         // // std::cout << spriteScale.x << " " <<  spriteScale.y << " " << spriteScale.z << std::endl;
+        // This will tell you exactly where the physical right edge of the box is
+        b2Vec2 pos = b2Body_GetPosition(body);
+        std::cout << "Box Physical Right Edge: " << (pos.x + halfWidth) << std::endl;
     }
 
     void Box::startContact() {
-        if (ignoreFirstContacts) return;
        playerContactCount++;
         std::cout << "[Box::startContact] this=" << this
               << " bodyType=" << b2Body_GetType(body)
@@ -205,12 +215,12 @@ namespace gl3 {
         std::cout << "[Box::endContact] this=" << this << std::endl;
     }
     // ← Add this
-    bool Box::isActuallyTouchingPlayer(Ship* player) {
-        glm::vec3 diff = this->position - player->getPosition();
-        float allowedX = 0.5f;
-        float allowedY = 0.5f;
-        return abs(diff.x) <= allowedX && abs(diff.y) <= allowedY;
-    }
+    // bool Box::isActuallyTouchingPlayer(Ship* player) {
+    //     glm::vec3 diff = this->position - player->getPosition();
+    //     float allowedX = 0.5f;
+    //     float allowedY = 0.5f;
+    //     return abs(diff.x) <= allowedX && abs(diff.y) <= allowedY;
+    // }
 
     // void Box::DebugDraw() {
     //     // Get physics body transform
