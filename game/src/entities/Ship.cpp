@@ -1,79 +1,113 @@
 #include "Ship.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <iostream>
-
 #include "../Game.h"
 #include "../Assets.h"
 #include "../rendering/Texture.h"
 #include "glm/gtx/string_cast.hpp"
+#include "../PhysicsCategories.h"
+#include "Stick.h"
 
 
 namespace gl3 {
 
     bool gl3::Ship::push_PullKeyPressed = false;
     bool gl3::Ship::spaceWasPressed = false;
-    float gl3::Ship::shipHalfHeight;
+    float Ship::playerHalfWidth; // Or set your default value
+    float Ship::playerHalfHeight;
     float gl3::Ship::playerVelX;
     glm::vec3 gl3::Ship::playerPos;
 
 
-    Ship::Ship(glm::vec3 position, float zRotation, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
-            Shader("shaders/vertexShader.vert", "shaders/fragmentShader.frag"),
+    Ship::Ship(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
+            shader,
             position,
-            zRotation,
             scale,
             {1, 1, 1, 1},
             physicsWorld,
-            EntityType::Player),
-    sprite(position, scale, Texture::LoadTexture("assets/textures/Awesome_face.png")) // <— initialize sprite here
+            EntityType::Player)
     {
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/char_test.png")); // <—
         audio.init();
         audio.setGlobalVolume(0.1f);
         firingSound.load(resolveAssetPath("audio/shot.mp3").string().c_str());
         firingSound.setSingleInstance(true);
         Ship::createPhysicsBody();
+
     }
 
     void Ship::update(Game *game, float deltaTime) {
-
         auto window = game->getWindow();
 
         if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, true);
         }
 
-        auto body = getBody();
-
-        float maxSpeed = 0.8f;
 
         vel = b2Body_GetLinearVelocity(body); //get current velocity
+        // --- START: NEW MOVEMENT AND SPRINT SYSTEM ---
 
-        // Horizontal movement
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            vel.x = -translationSpeed; // move left
-            if (vel.x < -maxSpeed) vel.x = -maxSpeed;
-            b2Body_SetLinearVelocity(body, vel);
-            //position.x -= translationSpeed * deltaTime;
+        // Constants (Used only in this block)
+        const float SPRINT_SPEED = 2.0f;
+        const float NORMAL_SPEED = 1.1f;
+        const float PROPORTIONAL_GAIN = 35.0f; // Tweak this for snappiness
+
+        bool sprintInput = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+        bool isMoving = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+
+        float currentMaxSpeed = NORMAL_SPEED; // Default speed
 
 
-        } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            vel.x = translationSpeed;  // move right
-            // Clamp horizontal velocity
-            if (vel.x > maxSpeed) vel.x = maxSpeed;
-            b2Body_SetLinearVelocity(body, vel);
-            //position.x += translationSpeed * deltaTime; This would manually teleport the sprite instead of relying on UpdateBasedOnPhysics
-        } // if neither A nor D pressed, x stays 0
+        // Check SPRINT: Requires key, movement
+        if (sprintInput && isMoving) {
 
-        else {
-            vel.x = 0.0f;
-            //b2Body_SetLinearVelocity(body, vel);  // ← ADD THIS LINE!
-
+            currentMaxSpeed = SPRINT_SPEED;
         }
-        // Flip sprite horizontally based on movement direction
-        if (vel.x > 0.0f) { //velocity positive --> sprite faces right
-            sprite.setScale(glm::vec3(abs(sprite.getScale().x), sprite.getScale().y, sprite.getScale().z));
-        } else if (vel.x < 0.0f) { //velocity negative --> sprite faces left
-            sprite.setScale(glm::vec3(-abs(sprite.getScale().x), sprite.getScale().y, sprite.getScale().z));
+
+
+
+        // 2. TARGET CALCULATION (Sets desiredX)
+        float desiredX = 0.0f;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            desiredX = -currentMaxSpeed;
+        } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            desiredX = currentMaxSpeed;
+        }
+
+        // 3. APPLY PROPORTIONAL FORCE
+        // Check if we are NOT pushing/pulling.
+        if (!push_PullKeyPressed) {
+
+            // Only apply proportional control when free moving.
+            if (std::abs(desiredX) > 0.0f || std::abs(vel.x) > 0.0f) {
+
+                float velocityError = desiredX - vel.x;
+                float forceX = velocityError * PROPORTIONAL_GAIN;
+
+                b2Body_ApplyForceToCenter(body, {forceX, 0.0f}, true);
+            }
+        } else {
+            // PUSH/PULL IS ACTIVE: Set the player's velocity directly.
+            // We bypass proportional control and force the player's velocity to match the desired speed.
+            // This gives the Box::update function a reliable target velocity (playerVelX) to follow.
+            b2Body_SetLinearVelocity(body, {desiredX, vel.y});
+        }
+        // NOTE: If you apply a force here, it will fight the box's kinematic control.
+        // It's safest to let the Box logic handle the movement for both.
+
+
+        // IMPORTANT: You may need to refresh 'vel' here before the sprite flip
+        vel = b2Body_GetLinearVelocity(body);
+
+        // Initialize it so it's never "garbage"
+        float direction = (sprite->getScale().x > 0) ? 1.0f : -1.0f;
+        // Flip sprite horizontally based on which movement key was  pressed
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { //move right, face right
+            sprite->setScale(glm::vec3(abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
+            direction = 1.0f;
+        } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { //move left, face left
+            sprite->setScale(glm::vec3(-abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
+            direction = -1.0f;
         }
 
         bool canJump = (abs(vel.y) < 0.1f); // effectively zero
@@ -84,56 +118,44 @@ namespace gl3 {
         if (spaceJustPressed && canJump) {
             b2Body_ApplyLinearImpulseToCenter(body, {0.0f, 3.0f}, true);
         }
-
-        // //Dashing
-        // float timeElapsed = 0.0f;
-        // bool dashPressed = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
-        // if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) && dashPressed ) {
-        //     vel.x -= 0.2f;
-        //    timeElapsed += deltaTime;
-        //     if (timeElapsed > 0.02f) {
-        //         vel.x = -translationSpeed;
-        //
-        //     }
-        //
-        // }
-
-
-
-        // E key for pushing
+        // Left Shift key for pushing
         push_PullKeyPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 
         playerVelX = vel.x;
 
 
+        bool LMBisDown = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS; //toggle aim
+        bool RMBisDown = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS; //throw
+        //Toggle throwing simulation
+        if (LMBisDown && !LMBwasDown) {
+            isAiming = !isAiming;
+            myStick->setAiming(isAiming);
+        }
+        LMBwasDown = LMBisDown;
 
-       // updateBasedOnPhysics();
+        if (isAiming) {
+            myStick->simulateThrow(game, position, direction);
 
-        playerPos = position;
-
-
-        // Prevent any rotation
-        b2Body_SetAngularVelocity(body, 0);
-
-    }
-
-
-
-    void Ship::draw(Game *game) {
-
-        Entity::draw(game);
-
-
-        sprite.draw(shader,game);
-        // std::cout << "SHIP - World Pos: " << position.x << ", " << position.y
-        //   << " Screen Pos: " << sprite.getPosition().x << ", " << sprite.getPosition().y << std::endl;
-
-
+            if (RMBisDown && !RMBwasDown) {
+                std::cout << "THROWING STICK " << std::endl;
+                myStick->throwStick(game, position, direction);
+                isAiming = false;
+                myStick->setAiming(isAiming);
+            }
+            RMBwasDown = RMBisDown;
 
         }
 
 
+            // updateBasedOnPhysics();
 
+            playerPos = position;
+
+
+            // Prevent any rotation
+            b2Body_SetAngularVelocity(body, 0);
+
+        }
 
 
     void Ship::createPhysicsBody()
@@ -155,24 +177,31 @@ namespace gl3 {
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
 
-        // Use b2MakeBox with the correct half-extents
-        float halfWidth = 0.125f;  // 0.25f / 2
-        float halfHeight = 0.125f; // 0.25f / 2
+        // Use the actual scale passed from Game.cpp
+        playerHalfWidth = scale.x / 3.0f;
+        playerHalfHeight = scale.y / 2.0f;
 
-        b2Polygon box = b2MakeBox(halfWidth, halfHeight);
+        b2Polygon box = b2MakeBox(playerHalfWidth, playerHalfHeight);
+        shapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_PLAYER;
+        // Do NOT include CATEGORY_STICK here.
+        shapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_FLOOR |
+                                   gl3::PhysicsCategories::CATEGORY_WALL |
+                                   gl3::PhysicsCategories::CATEGORY_BOX |
+                                   gl3::PhysicsCategories::CATEGORY_DOOR |
+                                       gl3::PhysicsCategories::CATEGORY_SWITCH; // <--- ADD THIS;
         shape = b2CreatePolygonShape(body, &shapeDef, &box);
         b2Shape_EnableContactEvents(shape, true);
         b2Shape_EnableSensorEvents(shape, true);
         b2Shape_SetUserData(shape, this);
         b2Shape_SetFriction(shape, 0.5f);
         b2Shape_SetRestitution(shape, 0.0f); // optional: no bounce
+        b2Shape_SetDensity(shape, 2.0f, true);
 
         // Debug
         b2AABB aabb = b2Shape_GetAABB(shape);
         std::cout << "Fixed Ship AABB: " << (aabb.upperBound.x - aabb.lowerBound.x)
                   << " x " << (aabb.upperBound.y - aabb.lowerBound.y) << std::endl;
 
-        shipHalfHeight = halfHeight;
 
         std::cout << "AABB Dimensions: " << (aabb.upperBound.x - aabb.lowerBound.x)
                   << " x " << (aabb.upperBound.y - aabb.lowerBound.y) << std::endl;
@@ -188,37 +217,21 @@ namespace gl3 {
         massData.center = b2Vec2{0.0f, 0.0f};
         massData.rotationalInertia = 0.0f; // must be explicitly set
         b2Body_SetMassData(body, massData);
-        b2Body_SetLinearDamping(body, 2.0f); // tweak this value
+
+        b2Body_SetLinearDamping(body, 0.5f); // tweak this value
 
 
 
     }
 
-    void Ship::updateBasedOnPhysics()
-    {
-        Entity::updateBasedOnPhysics();
-        //setting the sprite´s position, can be avoided if we add Sprite to Entity
-        //would not need to be overriden anymore
-        // static int counter = 0;
-        // std::cout << "Ship updateBasedOnPhysics call #" << ++counter << std::endl;
-        b2Vec2 bodyPos = b2Body_GetPosition(body);
-        position.x = bodyPos.x;
-        position.y = bodyPos.y;
-        sprite.setPosition(position);
 
 
-
-
-
+    void Ship::setStick(Stick *stick) {
+        this->myStick = stick;
     }
-    void Ship::setPosition(const glm::vec3 &newPosition) {
-        Entity::setPosition(newPosition);
 
+    void Ship::pickUpStick(Stick *stick) {
 
-        // Update physics body
-        if (body.index1 != 0) {  // Check if body is valid
-            b2Body_SetTransform(body, b2Vec2{newPosition.x, newPosition.y}, b2Body_GetRotation(body)); //already sets sprite on the ground,if not, sprite falls onto ground
-        }
     }
 
 
@@ -227,5 +240,14 @@ namespace gl3 {
 
     void Ship::startContact() {
         std::cout << "Ship start contact" << std::endl;
+    }
+
+
+    void Ship::kill(Game* game) {
+        isDead = true;
+        std::cout << "Player Died" << std::endl;
+        b2Body_Disable(body);
+        game->isGameOver = true;
+
     }
 }

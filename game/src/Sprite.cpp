@@ -46,21 +46,25 @@ namespace gl3 {
          glBindVertexArray(0);
      }
 
-     void Sprite::draw(Shader& shader, Game* game) {
+     void Sprite::draw(Shader& shader, Game* game, float rot) {
          // Sprite calculates its own MVP using game's camera
-         glm::mat4 mvp = game->calculateMvpMatrix(position, 0.0f, scale);
+         glm::mat4 mvp = game->calculateMvpMatrix(position, rot, scale);
          shader.use();
          shader.setMatrix("mvp", mvp);
+         shader.setVector("spriteColor", this->color);
          // Bind texture
          glActiveTexture(GL_TEXTURE0);
          glBindTexture(GL_TEXTURE_2D, textureID);
          shader.setInt("spriteTexture", 0);       // slot 0 stores a reference to tex data, gpu gets the rgba colors from tex coords and those values go into framebuffer
+         shader.setBool("useTexture", true);
 
-
+         glDepthMask(GL_FALSE); // Don't write to the depth buffer
          // Draw quad
          glBindVertexArray(VAO);
          glDrawArrays(GL_TRIANGLE_FAN, 0, 4); //Triangle fan automatically draws triangles from 4 vertices, taking 4 vertices makes them a quad
          glBindVertexArray(0);
+
+         glDepthMask(GL_TRUE); // Turn it back on for other things
 
 
      }

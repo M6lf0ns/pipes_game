@@ -8,8 +8,7 @@
 namespace gl3 {
     class Switch: public Entity{
     public:
-        explicit Switch(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 scale = glm::vec3(0.0f,0.0f,0.0f), glm::vec4 color = glm::vec4(1,1, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
-        void draw(Game *game) override;
+        explicit Switch(Shader* shader, glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 scale = glm::vec3(0.0f,0.0f,0.0f), glm::vec4 color = glm::vec4(1,1, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
         void startContact() override;
         void endContact();
         [[nodiscard]] float getHalfHeight() const;
@@ -21,7 +20,6 @@ namespace gl3 {
 
     private:
         float halfHeight = 0.0f, halfWidth = 0.0f;
-        Sprite sprite;
         bool isTouchingSomething = false;
 
     };
