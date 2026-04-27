@@ -13,7 +13,7 @@ namespace gl3 {
         public:
         Sprite(glm::vec3 pos, glm::vec3 scale, GLuint tex );
 
-        void draw(Shader& shader, Game* game, float rotation);
+        void draw(Shader& shader, const glm::mat4& mvp);
         void setRotation(float degrees) { rotation = degrees; }
         void setPosition(glm::vec3 pos) { position = pos; }
         void setScale(glm::vec3 size) { scale = size; }

@@ -18,18 +18,20 @@ namespace gl3 {
         explicit Ship(Shader* shader, glm::vec3 position = glm::vec3(0.0f, 0.6f, 0.0f),
              glm::vec3 scale = glm::vec3(0.25f, 0.25f, 0.25f), b2WorldId physicsWorld = b2_nullWorldId);
         void update(Game *game, float deltaTime) override;
-        void startContact() override;
+        void startContact(Entity* other) override;
         void setStick(Stick *stick);
+        void climb();
         void pickUpStick(Stick *stick);
         void kill(Game* game);
 
-        static glm::vec3 playerPos;
+        glm::vec3 playerPos;
         b2ShapeId shape;
         b2ShapeId footSensorShape;
-        static bool push_PullKeyPressed;
-        static float playerVelX;
-        static float playerHalfHeight;
-        static float playerHalfWidth;
+        bool canClimb = false;
+        bool push_PullKeyPressed = false;
+        float playerVelX;
+        float playerHalfHeight;
+        float playerHalfWidth;
         bool isGrounded = false;
         int groundContacts = 0;
         bool isDead = false;
@@ -39,7 +41,6 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
-
         Stick *myStick = nullptr;
         gl3::Texture* texture; // The texture you loaded for the ship
         float sprintDuration = 1.0f;
@@ -49,7 +50,7 @@ namespace gl3 {
         float translationSpeed = 3.0f;
         float rotationSpeed = 360.0f;
         b2Vec2 vel;
-        static bool spaceWasPressed;
+         bool spaceWasPressed;
         bool LMBwasDown = false;
         bool RMBwasDown = false;
         bool isAiming = false;

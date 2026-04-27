@@ -2,21 +2,20 @@
 #include "Switch.h"
 #include "../PhysicsCategories.h"
 #include <iostream>
-
 #include "../rendering/Texture.h"
 #include "box2d/box2d.h"
 
 namespace gl3 {
-    Switch::Switch(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+    Switch::Switch(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld)
         :Entity(shader,
             position,
             scale,
-            color,
             physicsWorld,
               EntityType::Switch)
 
     {
-        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/simple_square2.png"));
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/switch.png"));
+        this->setZOrder(1);
         //assuming scale.x and scale.y already halfheight and -width
         halfHeight = scale.y / 2.0f;
         halfWidth = scale.x / 2.0f;
@@ -27,38 +26,34 @@ namespace gl3 {
         //sprite.setScale(glm::vec3(halfWidth * 2, halfHeight * 2, 1.0f)); //full width and height
     }
 
+
     void Switch::createPhysicsBody() {
-        std::cout << "Switch: physicsWorld.index1 = " << physicsWorld.index1 << std::endl;
+        // 1. Create the Body (The "Anchor" for the logic)
+        b2BodyDef bodyDef = b2DefaultBodyDef();
+        bodyDef.type = b2_staticBody; // It stays in one spot
+        bodyDef.position = {position.x, position.y};
+        bodyDef.userData = this;
+        body = b2CreateBody(physicsWorld, &bodyDef);
 
-        if (physicsWorld.index1 < 1 || physicsWorld.index1 > 32) {
-            std::cout << "ERROR: Switch has invalid physicsWorld!" << std::endl;
-            throw std::runtime_error("Invalid physics world in Switch");
-        }
+        // 2. Create the Shape (The "Ghost" Trigger)
+        // Make it narrow so the triangle-ship tip has to be centered.
+        // Make it thin so the box is definitely "on" it before it fires.
+        float sensorWidth = halfWidth; // 30% of the sprite width
+        float sensorHeight = 0.5f;           // Very thin
+        b2Polygon sensorBox = b2MakeBox(sensorWidth, sensorHeight);
 
-        // Define body
-        b2BodyDef switchBodyDef = b2DefaultBodyDef();
-        switchBodyDef.type = b2_staticBody;
-        switchBodyDef.position = b2Vec2{position.x, position.y};
-        switchBodyDef.userData = this;
-        body = b2CreateBody(physicsWorld, &switchBodyDef);
+        // 3. Configure as a SENSOR
+        b2ShapeDef shapeDef = b2DefaultShapeDef();
+        shapeDef.isSensor = true; // <--- THIS is what makes it a "Ghost"
+        shapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_SWITCH;
+        shapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
+                                   gl3::PhysicsCategories::CATEGORY_BOX |
+                                       gl3::PhysicsCategories::CATEGORY_DOG;
 
-        // Define shape
-        b2Polygon groundSwitch = b2MakeBox(halfWidth, halfHeight);
-
-        b2ShapeDef groundSwitchShapeDef = b2DefaultShapeDef();
-        groundSwitchShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_SWITCH;
-        groundSwitchShapeDef.isSensor = true;
-
-        groundSwitchShapeDef.userData = this;
-        // ✅ CREATE shape FIRST
-        shape = b2CreatePolygonShape(body, &groundSwitchShapeDef, &groundSwitch);
-
-        // ✅ THEN set userData on it
+        // Attach it
+        shape = b2CreatePolygonShape(body, &shapeDef, &sensorBox);
         b2Shape_SetUserData(shape, this);
         b2Shape_EnableSensorEvents(shape, true);
-
-        void* ud = b2Shape_GetUserData(shape);
-        std::cout << "Switch shape userData = " << ud << std::endl;
     }
 
 
@@ -70,15 +65,36 @@ namespace gl3 {
         return halfWidth;
     }
 
-    void Switch::startContact() {
-        isTouchingSomething = true;
-        std::cout <<"WE ARE TOUCHING" << std::endl;
+    void Switch::onSensorEnter(Entity* visitor) {
+        if (!visitor) return;
 
+        // Log the pointer and the type
+        std::cout << "[S-ENTER] Ptr: " << visitor << " Type: " << (int)visitor->getType() << std::endl;
+
+        if (visitor->getType() == EntityType::Box || visitor->getType() == EntityType::Player || visitor->getType() == EntityType::Dog) {
+            occupants.insert(visitor);
+            std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
+            if (targetDoor) targetDoor->openDoor();
+        }
     }
 
-    void Switch::endContact() {
-        isTouchingSomething = false;
+    void Switch::onSensorExit(Entity* visitor) {
+        if (!visitor) return;
 
+        std::cout << "[S-EXIT] Ptr: " << visitor << std::endl;
+
+        auto it = occupants.find(visitor);
+        if (it != occupants.end()) {
+            occupants.erase(it);
+            std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
+        } else {
+            std::cout << "[S-WARNING] An object left that was never registered!" << std::endl;
+        }
+
+        if (occupants.empty() && targetDoor) {
+            std::cout << "[S-LOGIC] Set empty. Closing Door." << std::endl;
+            targetDoor->closeDoor();
+        }
     }
 
 

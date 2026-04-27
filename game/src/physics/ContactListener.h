@@ -18,13 +18,13 @@ namespace gl3 {
                 if(bodyUserDataA)
                 {
                     auto entity = static_cast<Entity*>(bodyUserDataA);
-                    entity->startContact();
+                    //entity->startContact();
                 }
 
                 if(bodyUserDataB)
                 {
                     auto entity = static_cast<Entity*>(bodyUserDataB);
-                    entity->startContact();
+                    //entity->startContact();
                 }
             }
         }

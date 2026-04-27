@@ -7,16 +7,18 @@
 
 namespace gl3 {
 
-    Door::Door(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+    Door::Door(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld)
       :Entity(shader,
           position,
           scale,
-          color,
           physicsWorld,
           EntityType::Door)
 
     {
-        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/door_square.png"));
+        this->closedTex = Texture::LoadTexture("assets/textures/door.png");
+        this->openTex = Texture::LoadTexture("assets/textures/door_open.png");
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/door.png"));
+        this->setZOrder(1);//MIDGROUND
         halfWidth = scale.x / 2.0f;
         halfHeight = scale.y / 2.0f;
 
@@ -30,7 +32,7 @@ namespace gl3 {
     void Door::createPhysicsBody() {
 
         b2BodyDef doorBodyDef = b2DefaultBodyDef();
-        doorBodyDef.type = b2_staticBody;
+        doorBodyDef.type = b2_kinematicBody;
         doorBodyDef.position = b2Vec2{position.x,position.y};
         doorBodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &doorBodyDef);
@@ -40,7 +42,8 @@ namespace gl3 {
         doorShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_DOOR;
         doorShapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
                                gl3::PhysicsCategories::CATEGORY_SEC_BOT |
-                                   gl3::PhysicsCategories::CATEGORY_DOG; // <--- IMPORTANT
+                                   gl3::PhysicsCategories::CATEGORY_DOG  |
+                                       gl3::PhysicsCategories::CATEGORY_STICK; // <--- IMPORTANT
         // 2. Ensure contact events are enabled (Box2D sometimes needs this for static bodies)
         doorShapeDef.enableContactEvents = true;
         shape = b2CreatePolygonShape(body, &doorShapeDef, &doorShape);
@@ -62,39 +65,33 @@ namespace gl3 {
     void Door::openDoor() {
         if (isDoorOpen) return;
 
-        std::cout << "Opening door..." << std::endl;
+        // Create a filter that masks out everything (0 bits)
+        b2Filter openFilter = b2DefaultFilter();
+        openFilter.maskBits = 0x0000;
 
-        // Destroy the physics body (removes collision)
-        destroyPhysicsBody();
+        b2Shape_SetFilter(shape, openFilter);
 
         isDoorOpen = true;
-
-        // Optional: Change sprite to show open door
-        // sprite = Sprite(position, scale, Texture::LoadTexture("assets/textures/door_open.png"));
-        // Switch back to closed texture
-        sprite->setTexture(Texture::LoadTexture("assets/textures/open_door.png"));
-
+        sprite->setTexture(openTex);
+        // ... your nudge logic ...
     }
 
     void Door::closeDoor() {
+        if (!isDoorOpen) return;
 
-        if (!isDoorOpen) return;  // Already closed
+        // Restore the original filter so door can hit the bot/other maskBits again
+        b2Filter closedFilter = b2DefaultFilter();
+        closedFilter.categoryBits = gl3::PhysicsCategories::CATEGORY_DOOR;
+        closedFilter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
+                                gl3::PhysicsCategories::CATEGORY_SEC_BOT |
+                                gl3::PhysicsCategories::CATEGORY_DOG;
 
-        std::cout << "Closing door..." << std::endl;
-
-        // Recreate the physics body (re-enables collision)
-        createPhysicsBody();
-
+        b2Shape_SetFilter(shape, closedFilter);
 
         isDoorOpen = false;
-        // Switch back to closed texture
-        sprite->setTexture(Texture::LoadTexture("assets/textures/door_square.png"));
-
-        // Optional: Change sprite back
-        // sprite = Sprite(position, scale, Texture::LoadTexture("assets/textures/door_closed.png"));
+        sprite->setTexture(closedTex);
+        sprite->setPosition(glm::vec3(position.x, position.y, 0.0f));
     }
-
-
 
     void Door::destroyPhysicsBody() {
         //destroy shape first
@@ -110,7 +107,7 @@ namespace gl3 {
     }
 
 
-    void Door::startContact() {
+    void Door::startContact(Entity* other) {
 
     }
 

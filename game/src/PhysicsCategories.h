@@ -11,13 +11,14 @@ namespace gl3 {
         static const FilterCategory CATEGORY_PLAYER    = 0x0000000000000001ULL;
         static const FilterCategory CATEGORY_WALL      = 0x0000000000000002ULL;
         static const FilterCategory CATEGORY_BOX   = 0x0000000000000004ULL;
-        static const FilterCategory CATEGORY_DOOR   = 0x0000000000000008ULL;
+        static const FilterCategory CATEGORY_DOOR   = 0x0000000000000400ULL;
         static const FilterCategory CATEGORY_SEC_BOT  = 0x000000000000010ULL;
         static const FilterCategory CATEGORY_PATROL_SENSORS = 0x000000000000020ULL;
         static const FilterCategory CATEGORY_FLOOR = 0x000000000000040ULL;
         static const FilterCategory CATEGORY_STICK = 0x000000000000080ULL;
         static const FilterCategory CATEGORY_SWITCH = 0x000000000000100ULL;
         static const FilterCategory CATEGORY_DOG = 0x000000000002000ULL;
+        static const FilterCategory CATEGORY_LADDER = 0x000000000004000ULL;
         // ... all other CATEGORY constants ...
         static const FilterCategory CATEGORY_VISION_SENSOR = 0x0000000000000080ULL;
 

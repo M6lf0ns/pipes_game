@@ -5,11 +5,10 @@
 #include "../Game.h"
 
 namespace gl3 {
-    Entity::Entity(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld, EntityType type) :
+    Entity::Entity(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, EntityType type) :
             shader(shader),
             position(position),
             scale(scale),
-            color(color),
             physicsWorld(physicsWorld),
             body(b2_nullBodyId),
             shape(b2_nullShapeId),
@@ -38,15 +37,25 @@ namespace gl3 {
     }
 
     void Entity::draw(Game *game) {
-        // We pass zRotation here instead of 0
-        auto mvpMatrix = game->calculateMvpMatrix(position, zRotation, scale);
+        if (sprite == nullptr) return;
 
+        // 1. Get the VISUAL scale (flipped) instead of the physics scale
+        // This calls the virtual function we added to the header
+        glm::vec3 visualScale = this->getDrawScale();
+
+        // 2. Calculate the matrix using that visual scale
+        auto mvpMatrix = game->calculateMvpMatrix(position, zRotation, visualScale);
+
+        // 3. Make sure the shader is ready
         shader->use();
-        shader->setMatrix("mvp", mvpMatrix);
-        // ... draw calls
-        sprite->draw(*shader,game, zRotation);
-    }
 
+        // 4. Send the matrix to the shader
+        // IMPORTANT: Ensure "mvp" matches the name in your vertex shader exactly
+        shader->setMatrix("mvp", mvpMatrix);
+
+        // 5. Tell the sprite to do the actual OpenGL draw calls
+        sprite->draw(*shader, mvpMatrix);
+    }
     b2BodyId Entity::getBody() const {
         return body;
     }
@@ -78,7 +87,18 @@ namespace gl3 {
         }
     }
 
-    void Entity::startContact() {
+    void Entity::startContact(Entity* other) {
+
+    }
+
+    void Entity::endContact(Entity* other) {
+
+    }
+    void Entity::onSensorEnter(Entity* other) {
+
+    }
+
+    void Entity::onSensorExit(Entity* other) {
 
     }
 }

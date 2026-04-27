@@ -14,17 +14,16 @@
 namespace gl3 {
 
 
-    Box::Box(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld)
+    Box::Box(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld)
         :Entity(shader,
             position,
             scale,
-            color,
             physicsWorld,
             EntityType::Box)
 
     {
-        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/temp_box1.png"));
-
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/box.png"));
+        this->setZOrder(3); //FOREGROUND
         halfWidth = scale.x / 2.0f;
         halfHeight = scale.y / 2.0f;
 
@@ -74,7 +73,8 @@ namespace gl3 {
                                       gl3::PhysicsCategories::CATEGORY_SEC_BOT |
                                           gl3::PhysicsCategories::CATEGORY_STICK |
                                               gl3::PhysicsCategories::CATEGORY_PLAYER |
-                                      gl3::PhysicsCategories::CATEGORY_DOOR;
+                                      gl3::PhysicsCategories::CATEGORY_DOOR |
+                                          gl3::PhysicsCategories::CATEGORY_SWITCH;
         shape = b2CreatePolygonShape(body, &boxShapeDef, &box);
         //b2Shape_SetUserData(shape, this);             // <<< IMPORTANT: let contact system identify this Box
         b2Shape_SetFriction(shape, 0.1f); // friction of box sides/bottom
@@ -93,18 +93,26 @@ namespace gl3 {
 
     void Box::update(Game *game, float deltaTime)
     {
+        //make sure the player cant pull or push the box if too far away
+        if (activePlayer) {
+            float dist = glm::distance(activePlayer->getPosition(), this->getPosition());
+            if (dist > (activePlayer->playerHalfWidth + this->halfWidth + 0.2f)) {
+                playerContactCount = 0; // Force a "drop" if the player is too far
+            }
+        }
+
         float actualWidth = GetHalfWidth();
-        std::cout << "BOX WIDTH " << actualWidth << std::endl;
+        //std::cout << "BOX WIDTH " << actualWidth << std::endl;
         //std::cout << "Is box touching player? " << playerContactCount << std::endl;
-        if (playerContactCount > 0 && Ship::push_PullKeyPressed)
+        if (activePlayer && playerContactCount > 0 && activePlayer->push_PullKeyPressed)
         {
             float playerHalfWidth = GetHalfWidth();
 
 
             b2Body_SetAwake(body, true);
 
-            float playerVelX = Ship::playerVelX;
-            float playerPosX = Ship::playerPos.x;
+            float playerVelX = activePlayer->playerVelX;
+            float playerPosX = activePlayer->playerPos.x;
             b2Vec2 boxPos = b2Body_GetPosition(body);
             b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
 
@@ -115,7 +123,7 @@ namespace gl3 {
             // Calculate the ideal distance (player body edge to box body edge)
             // Ensure this matches how your player and box overlap to be considered 'touching'.
             // This is the ideal separation we want to maintain.
-            float idealSeparation = playerHalfWidth + boxHalfWidth + 0.001f; // 0.251f total
+            float idealSeparation = activePlayer->playerHalfWidth + boxHalfWidth + 0.001f; // 0.251f total
 
             // Determine if pushing or pulling (based on your existing logic)
             bool pushing = (playerVelX * playerToBoxX > 0); // moving toward box
@@ -178,11 +186,11 @@ namespace gl3 {
     }
 
     float Box::GetHalfHeight() const {
-        return Ship::playerHalfHeight;;
+        return this->halfHeight;;
     }
 
     float Box::GetHalfWidth() const {
-        return Ship::playerHalfWidth;
+        return this->halfWidth;
     }
 
 
@@ -196,12 +204,16 @@ namespace gl3 {
         // // glm::vec3 spriteScale = sprite.getScale();
         // // std::cout << spriteScale.x << " " <<  spriteScale.y << " " << spriteScale.z << std::endl;
         // This will tell you exactly where the physical right edge of the box is
-        b2Vec2 pos = b2Body_GetPosition(body);
-        std::cout << "Box Physical Right Edge: " << (pos.x + halfWidth) << std::endl;
+        // b2Vec2 pos = b2Body_GetPosition(body);
+        // std::cout << "Box Physical Right Edge: " << (pos.x + halfWidth) << std::endl;
     }
 
-    void Box::startContact() {
-       playerContactCount++;
+    void Box::startContact(Entity* other) {
+        if (other->getType() == EntityType::Player) {
+            this->playerContactCount++;
+            activePlayer = static_cast<Ship*>(other); // Grip the real player
+        }
+       // playerContactCount++;
         std::cout << "[Box::startContact] this=" << this
               << " bodyType=" << b2Body_GetType(body)
               << " pos=(" << b2Body_GetPosition(body).x << "," << b2Body_GetPosition(body).y << ")"

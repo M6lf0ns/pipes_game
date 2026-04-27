@@ -12,11 +12,11 @@ namespace gl3 {
         shader,
         position,
         scale,
-    {1, 1, 1, 1},
         physicsWorld,
         EntityType::Stick)
     {
         this -> sprite = new Sprite (position, scale, Texture::LoadTexture("assets/textures/temp_pipe.png"));
+        this->setZOrder(4);
         Stick::createPhysicsBody();
         // 1. Create the IDs
         glGenVertexArrays(1, &vao);
@@ -204,7 +204,7 @@ namespace gl3 {
         shader->setBool("useTexture", true);
     }
 
-    void Stick::startContact() {
+    void Stick::startContact(Entity* other) {
 
             std::cout << "DEBUG: Stick started contact!" << std::endl;
 

@@ -13,7 +13,6 @@ namespace gl3{
         explicit Entity(Shader* shader,
                glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
                glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f),
-               glm::vec4 color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
                b2WorldId physicsWorld = b2_nullWorldId,
                EntityType type = EntityType::None);
 
@@ -34,8 +33,18 @@ namespace gl3{
         [[nodiscard]] b2ShapeId getShape() const;
         int getZOrder() const { return zOrder; }
         virtual void updateBasedOnPhysics();
-        virtual void startContact();
+        virtual void startContact(Entity* other);
+        virtual void endContact(Entity* other);
         virtual void resetState() {};
+        virtual void onSensorEnter(Entity* other);
+        virtual void onSensorExit(Entity* other);
+        virtual Sprite *getSprite() { return sprite; }
+        // Add this to your base Entity class
+        virtual glm::vec3 getDrawScale() {
+            // If the entity has a sprite, return the sprite's scale (which is flipped)
+            // If not, just return the entity's own scale
+            return (sprite != nullptr) ? sprite->getScale() : this->scale;
+        }
 
         [[nodiscard]] virtual EntityType getType() const { return type; }
 
