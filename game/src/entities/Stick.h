@@ -16,7 +16,7 @@ namespace gl3 {
         void setAiming( bool isAiming);
         void setDawg(Dog* dog);
         Dog* getDawg() {return dawg;}
-        void startContact() override;
+        void startContact(Entity* other) override;
         void endContact();
         ~Stick() override;
 

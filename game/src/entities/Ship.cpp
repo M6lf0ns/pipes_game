@@ -11,23 +11,23 @@
 
 namespace gl3 {
 
-    bool gl3::Ship::push_PullKeyPressed = false;
-    bool gl3::Ship::spaceWasPressed = false;
-    float Ship::playerHalfWidth; // Or set your default value
-    float Ship::playerHalfHeight;
-    float gl3::Ship::playerVelX;
-    glm::vec3 gl3::Ship::playerPos;
+    // bool gl3::Ship::push_PullKeyPressed = false;
+    // bool gl3::Ship::spaceWasPressed = false;
+    // float Ship::playerHalfWidth; // Or set your default value
+    // float Ship::playerHalfHeight;
+    // float gl3::Ship::playerVelX;
+    // glm::vec3 gl3::Ship::playerPos;
 
 
     Ship::Ship(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
             shader,
             position,
             scale,
-            {1, 1, 1, 1},
             physicsWorld,
             EntityType::Player)
     {
         this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/char_test.png")); // <—
+        this->setZOrder(2);
         audio.init();
         audio.setGlobalVolume(0.1f);
         firingSound.load(resolveAssetPath("audio/shot.mp3").string().c_str());
@@ -155,7 +155,28 @@ namespace gl3 {
             // Prevent any rotation
             b2Body_SetAngularVelocity(body, 0);
 
+        if (this->canClimb) {
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                b2Body_SetGravityScale(body, 0.0f);
+
+                // Manual movement logic
+                if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) vel.y = 3.0f;
+                else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) vel.y = -3.0f;
+                else vel.y = 0.0f; // Stay still on the ladder!
+            }
+        } else {
+            // RESET GRAVITY HERE
+            // Player is no longer on a ladder, ensure physics are back to normal
+            if (!this->canClimb) {
+                b2Body_SetGravityScale(body, 1.0f);
+
+            }
         }
+
+        b2Body_SetLinearVelocity(body, vel);
+        }
+
+
 
 
     void Ship::createPhysicsBody()
@@ -173,23 +194,34 @@ namespace gl3 {
         bodyDef.position = {position.x, position.y};
         bodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &bodyDef);
-
-
-        b2ShapeDef shapeDef = b2DefaultShapeDef();
-
         // Use the actual scale passed from Game.cpp
         playerHalfWidth = scale.x / 3.0f;
         playerHalfHeight = scale.y / 2.0f;
 
-        b2Polygon box = b2MakeBox(playerHalfWidth, playerHalfHeight);
+        // 1. Define the vertices as usual
+        b2Vec2 vertices[3];
+        vertices[0] = {-playerHalfWidth,  playerHalfHeight}; // Top Left
+        vertices[1] = { playerHalfWidth,  playerHalfHeight}; // Top Right
+        vertices[2] = { 0.0f,            -playerHalfHeight}; // Bottom Tip
+
+        // 2. Compute the Hull (This is what was missing)
+        b2Hull hull = b2ComputeHull(vertices, 3);
+
+        // 3. Create the Polygon using the Hull and a "radius" (usually 0.0f)
+        b2Polygon triangle = b2MakePolygon(&hull, 0.0f);
+
+        // 4. Everything else stays exactly as you had it
+        b2ShapeDef shapeDef = b2DefaultShapeDef();
         shapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_PLAYER;
-        // Do NOT include CATEGORY_STICK here.
         shapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_FLOOR |
-                                   gl3::PhysicsCategories::CATEGORY_WALL |
-                                   gl3::PhysicsCategories::CATEGORY_BOX |
-                                   gl3::PhysicsCategories::CATEGORY_DOOR |
-                                       gl3::PhysicsCategories::CATEGORY_SWITCH; // <--- ADD THIS;
-        shape = b2CreatePolygonShape(body, &shapeDef, &box);
+                                   gl3::PhysicsCategories::CATEGORY_WALL  |
+                                   gl3::PhysicsCategories::CATEGORY_BOX   |
+                                   gl3::PhysicsCategories::CATEGORY_DOOR  |
+                                   gl3::PhysicsCategories::CATEGORY_SWITCH;
+
+        shape = b2CreatePolygonShape(body, &shapeDef, &triangle);
+
+        // ... keep your EnableContactEvents, SetUserData, etc. below this ...
         b2Shape_EnableContactEvents(shape, true);
         b2Shape_EnableSensorEvents(shape, true);
         b2Shape_SetUserData(shape, this);
@@ -234,11 +266,17 @@ namespace gl3 {
 
     }
 
+    void Ship::climb() {
+
+
+    }
 
 
 
 
-    void Ship::startContact() {
+
+
+    void Ship::startContact(Entity* other) {
         std::cout << "Ship start contact" << std::endl;
     }
 
@@ -250,4 +288,5 @@ namespace gl3 {
         game->isGameOver = true;
 
     }
+
 }

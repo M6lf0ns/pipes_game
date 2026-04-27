@@ -12,7 +12,8 @@ namespace gl3 {
         Door,
         Floor,
         Stick,
-        Dog
+        Dog,
+        Ladder
     };
 
 }

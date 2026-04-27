@@ -8,9 +8,9 @@
 namespace gl3 {
     class SecBot: public Entity {
         public:
-        explicit SecBot(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), glm::vec4 color = glm::vec4(1, 0, 0, 1), b2WorldId physicsWorld = b2_nullWorldId);
+        explicit SecBot(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), b2WorldId physicsWorld = b2_nullWorldId);
         void update(Game *game, float deltaTime) override;
-        void startContact() override;
+        void startContact(Entity* other) override;
         // Public methods called by Game::SensorStartsSensing
         void castRay();
 

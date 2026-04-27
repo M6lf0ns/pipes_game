@@ -12,11 +12,11 @@ namespace gl3 {
         shader,
         position,
         scale,
-        {1,1,1,1},
         physicsWorld,
         EntityType::Dog) {
 
         this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/test_secBot.png"));
+        this->setZOrder(2);
         Dog::createPhysicsBody();
 
     }
@@ -25,7 +25,7 @@ namespace gl3 {
 
         // In Dog::update
         b2Vec2 dogPos = b2Body_GetPosition(body);
-        std::cout << "Dog Physical Left Edge: " << (dogPos.x - dogRadius) << std::endl;
+        // std::cout << "Dog Physical Left Edge: " << (dogPos.x - dogRadius) << std::endl;
         Entity::update(game, deltaTime);
         if (this->stickHasLanded) {
             b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
@@ -54,23 +54,27 @@ namespace gl3 {
 
     void Dog::createPhysicsBody() {
 
-        setDogRadius(scale.y /2.0f);
+        // 1. Calculate radius locally first to ensure it's valid
+        float radius = scale.y / 2.0f;
+        if (radius <= 0.0f) radius = 0.5f; // Emergency fallback
+
         b2BodyDef bodyDef = b2DefaultBodyDef();
-        bodyDef.enableSleep = true;
         bodyDef.type = b2_dynamicBody;
         bodyDef.position = {position.x, position.y};
         bodyDef.userData = this;
+        bodyDef.enableSleep = false; // Add this line!
         body = b2CreateBody(physicsWorld, &bodyDef);
 
-        b2Circle circleGeometry = { {0.0f, 0.0f}, dogRadius };
+        // 2. Pass the radius directly
+        b2Circle circleGeometry = { {0.0f, 0.0f}, radius };
 
-        // 4. Define the Shape Properties
         b2ShapeDef dogShapeDef = b2DefaultShapeDef();
         dogShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_DOG;
         dogShapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_FLOOR |
                                   gl3::PhysicsCategories::CATEGORY_WALL |
                                   gl3::PhysicsCategories::CATEGORY_BOX |
-                                      gl3::PhysicsCategories::CATEGORY_DOOR;
+                                      gl3::PhysicsCategories::CATEGORY_DOOR |
+                                          gl3::PhysicsCategories::CATEGORY_SWITCH;
 
 
         dogShapeDef.userData = this;
@@ -79,6 +83,7 @@ namespace gl3 {
             &dogShapeDef,
             &circleGeometry
             );
+        std::cout << "[DOG DEBUG] Created with Radius: " << radius << " at Pos: " << position.x << ", " << position.y << std::endl;
         b2Shape_SetFriction(shape, 0.3f);
         b2Shape_SetRestitution(shape, 0.1f);
 
@@ -90,7 +95,7 @@ namespace gl3 {
     }
 
 
-    void Dog::startContact() {
+    void Dog::startContact(Entity* other) {
 
     }
 

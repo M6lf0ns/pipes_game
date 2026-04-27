@@ -49,16 +49,16 @@ namespace gl3 {
         return fraction; //current hit's distance along ray (0.0 at start → 1.0 at end)
     }
 
-    SecBot::SecBot(Shader* shader, glm::vec3 position, glm::vec3 scale, glm::vec4 color, b2WorldId physicsWorld) : Entity (
+    SecBot::SecBot(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld) : Entity (
         shader,
         position,
         scale,
-        color,
         physicsWorld,
         EntityType::SecBot)
 
         {
         this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/test_secBot.png"));
+        this->setZOrder(3);
         SecBot::createPhysicsBody();
 
     }
@@ -166,7 +166,7 @@ namespace gl3 {
     }
 
 
-    void SecBot::startContact() {
+    void SecBot::startContact(Entity* other) {
         if (!isTurning) isTurning = true;
         timeRemainingBeforeTurn = turnTimer;
 

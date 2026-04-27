@@ -9,7 +9,7 @@ namespace gl3 {
         public:
         explicit Dog(Shader *shader, glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 scale = glm::vec3(1, 1, 1), b2WorldId physicsWorld = b2_nullWorldId );
         void update(Game *game, float deltaTime) override;
-        void startContact() override;
+        void startContact(Entity* other) override;
         static float getDogRadius() {return dogRadius;};
         static void setDogRadius(float radius) {dogRadius = radius;};
         void setStickHasLanded(bool isLanded) {this->stickHasLanded = isLanded;};

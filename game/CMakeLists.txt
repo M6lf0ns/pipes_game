@@ -13,8 +13,6 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Ship.cpp
         src/entities/Ship.h
         src/Assets.h
-        src/entities/Planet.cpp
-        src/entities/Planet.h
         src/entities/Enemy.cpp
         src/entities/Enemy.h
         src/entities/Missile.cpp
@@ -42,6 +40,15 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Stick.h
         src/entities/Dog.cpp
         src/entities/Dog.h
+        src/levels/Scene.cpp
+        src/levels/Scene.h
+        src/levels/level1.cpp
+        src/levels/level1.h
+        src/levels/level2.cpp
+        src/levels/level2.h
+        src/entities/entities.h
+        src/entities/ladder.cpp
+        src/entities/ladder.h
 
 )
 
