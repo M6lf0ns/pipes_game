@@ -4,6 +4,7 @@
 #include "../rendering/Shader.h"
 #include "box2d/id.h"
 #include "../EntityType.h"
+#include "box2d/collision.h"
 
 namespace gl3{
     class Game;
@@ -47,6 +48,8 @@ namespace gl3{
         }
 
         [[nodiscard]] virtual EntityType getType() const { return type; }
+        virtual void Freeze();
+        virtual void UnFreeze();
 
 
     protected:

@@ -13,7 +13,11 @@ namespace gl3 {
         Floor,
         Stick,
         Dog,
-        Ladder
+        Ladder,
+        Speaker,
+        SpeakerSwitch,
+        Vent,
+        LaserGuy
     };
 
 }

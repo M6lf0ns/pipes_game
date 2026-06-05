@@ -39,7 +39,7 @@ namespace gl3 {
         // Make it narrow so the triangle-ship tip has to be centered.
         // Make it thin so the box is definitely "on" it before it fires.
         float sensorWidth = halfWidth; // 30% of the sprite width
-        float sensorHeight = 0.5f;           // Very thin
+        float sensorHeight = 0.05f;           // Very thin
         b2Polygon sensorBox = b2MakeBox(sensorWidth, sensorHeight);
 
         // 3. Configure as a SENSOR
@@ -48,7 +48,8 @@ namespace gl3 {
         shapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_SWITCH;
         shapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
                                    gl3::PhysicsCategories::CATEGORY_BOX |
-                                       gl3::PhysicsCategories::CATEGORY_DOG;
+                                       gl3::PhysicsCategories::CATEGORY_DOG |
+                                           gl3::PhysicsCategories::CATEGORY_SEC_BOT;
 
         // Attach it
         shape = b2CreatePolygonShape(body, &shapeDef, &sensorBox);
@@ -69,26 +70,29 @@ namespace gl3 {
         if (!visitor) return;
 
         // Log the pointer and the type
-        std::cout << "[S-ENTER] Ptr: " << visitor << " Type: " << (int)visitor->getType() << std::endl;
+        //std::cout << "[S-ENTER] Ptr: " << visitor << " Type: " << (int)visitor->getType() << std::endl;
 
-        if (visitor->getType() == EntityType::Box || visitor->getType() == EntityType::Player || visitor->getType() == EntityType::Dog) {
+        if (visitor->getType() == EntityType::Box || visitor->getType() == EntityType::Player || visitor->getType() == EntityType::Dog || visitor->getType() == EntityType::SecBot) {
             occupants.insert(visitor);
-            std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
+            //std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
             if (targetDoor) targetDoor->openDoor();
+        }
+        if (visitor->getType() == EntityType::Dog) {
+            //std::cout << "DOG HAS ENTERED SWITCH SENSOR" << std::endl;
         }
     }
 
     void Switch::onSensorExit(Entity* visitor) {
         if (!visitor) return;
 
-        std::cout << "[S-EXIT] Ptr: " << visitor << std::endl;
+        //std::cout << "[S-EXIT] Ptr: " << visitor << std::endl;
 
         auto it = occupants.find(visitor);
         if (it != occupants.end()) {
             occupants.erase(it);
-            std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
+            //std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
         } else {
-            std::cout << "[S-WARNING] An object left that was never registered!" << std::endl;
+            //std::cout << "[S-WARNING] An object left that was never registered!" << std::endl;
         }
 
         if (occupants.empty() && targetDoor) {

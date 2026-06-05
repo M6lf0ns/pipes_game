@@ -1,6 +1,7 @@
 #include "../rendering/Texture.h"
 #include <iostream>
 #include "Stick.h"
+#include "Dog.h"
 #include "../PhysicsCategories.h"
 #include "../Game.h"
 #include "box2d/box2d.h"
@@ -39,8 +40,26 @@ namespace gl3 {
     }
 
     void Stick::update(Game *game, float deltaTime) {
+
+        if (isFollowingPlayer) {
+            b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
+            b2Body_SetAngularVelocity(body, 0.0f);
+            sprite->setPosition(playerPos);
+
+        }
+
+        if (isTimerActive) {
+            timer += deltaTime;
+         if (timer >= maxTime) {
+             dawg->setStickHasLanded(true);
+             timer = 0.0f;
+             isTimerActive = false;
+         }
+        }
         // 1. If we aren't in "flying mode," don't touch anything
-        if (!hasBeenThrown) return;
+        if (!hasBeenThrown) {
+            return;
+        }
 
         b2Vec2 vel = b2Body_GetLinearVelocity(body);
         float angularVel = b2Body_GetAngularVelocity(body);
@@ -65,14 +84,20 @@ namespace gl3 {
             dawg->setStickHasLanded(hasLanded);
             dawg->setTargetLocation(position.x);
 
-            std::cout << "STICK LANDED AND SNAPPED" << std::endl;
+            //std::cout << "STICK LANDED AND SNAPPED" << std::endl;
         }
+
     }
 
     void Stick::draw(Game *game) {
-        Entity::draw(game);
+        // 1. Only render the actual stick texture if it's visible (out of your inventory)
+        if (isVisible) {
+            Entity::draw(game);
+        }
 
-        if (isAiming) {
+        // 2. This runs completely separate from the stick's visibility!
+        // Even if the stick is hidden in your pocket, if you are aiming, draw the dots.
+        if (isAiming && isFollowingPlayer) {
             this->drawTrajectory(game);
         }
 
@@ -106,6 +131,7 @@ namespace gl3 {
         b2Shape_SetFriction(shape, 0.7f);
         b2Shape_SetRestitution(shape, 0.1f);
         b2Shape_SetDensity(shape, 5.0f, true);
+        b2Shape_EnableContactEvents(shape, true);
         // Inside Stick::createPhysicsBody
 
 
@@ -152,24 +178,29 @@ namespace gl3 {
     }
 
     void Stick::throwStick(Game *game, glm::vec3 pos, float direction) {
-        // 1. Move it (0.2f is fine now with your maskBits!)
-        this->setPosition(pos + glm::vec3(direction * 0.2f, 0.0f, 0.0f));
+        isFollowingPlayer = false; // Stop tracking player coordinates
+        hasLanded = false;
+        isVisible = true;          // Make it reappear flying
 
-        // 2. THE FIX: Kill all existing momentum, Only necessary thing to fix stick having different trajectory
-        b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
-        b2Body_SetAngularVelocity(body, 0.0f);
+        if (b2Body_IsValid(body)) {
+            b2Body_Enable(body);
 
-        // 3. Force it awake so the engine re-evaluates its position
-        b2Body_SetAwake(body, true);
-        // Apply movement first
-        b2Body_ApplyLinearImpulseToCenter(body, {impulse, 4.0f}, true); //no impulse for y because dir can be neg --> stick is pushed down -> big no no
-        b2Body_ApplyAngularImpulse(body, 2.5f * -direction, true);
+            // Teleport it slightly offset in front of the player
+            b2Rot zeroRot = b2MakeRot(0.0f);
+            b2Body_SetTransform(body, {pos.x + (direction * 0.3f), pos.y + 0.1f}, zeroRot);
 
-        // THEN turn on the update logic
+            // Clear momentum before applying impulses
+            b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
+            b2Body_SetAngularVelocity(body, 0.0f);
+            b2Body_SetAwake(body, true);
+
+            // Launch it!
+            b2Body_ApplyLinearImpulseToCenter(body, {impulse, 4.0f}, true);
+            b2Body_ApplyAngularImpulse(body, 2.5f * -direction, true);
+        }
+
         hasBeenThrown = true;
-
     }
-
 
     void Stick::drawTrajectory(Game *game) {
         if (trajectoryPoints.empty()) return;
@@ -206,22 +237,66 @@ namespace gl3 {
 
     void Stick::startContact(Entity* other) {
 
-            std::cout << "DEBUG: Stick started contact!" << std::endl;
+    }
 
-
+    void Stick::endContact(Entity* other) {
+        if (hasBeenThrown) hasLanded = false;
     }
 
     void Stick::setDawg(Dog* dog) {
         this->dawg = dog;
 
-
-
     }
 
-    void Stick::endContact() {
-        if (hasBeenThrown) hasLanded = false;
+    void Stick::pickUpStick(Game *game, glm::vec3 pos, float direction) {
+        isFollowingPlayer = true;
+        hasBeenThrown = false;
+        hasLanded = false;
+        isVisible = false; // Make it vanish
+
+        // Disable the physics body entirely so it stops simulating
+        if (b2Body_IsValid(body)) {
+            b2Body_Disable(body);
+        }
     }
 
+    void Stick::dropStick(glm::vec3 pos, float direction) {
+        isFollowingPlayer = false;
+        hasBeenThrown = false;
+        hasLanded = false;
+        isVisible = true; // Make it reappear
+
+        if (b2Body_IsValid(body)) {
+            b2Body_Enable(body);
+
+            // Spawn it right at the player's position coordinates
+            b2Rot zeroRot = b2MakeRot(0.0f);
+            b2Body_SetTransform(body, {pos.x, pos.y}, zeroRot);
+
+
+            // Give it a tiny, clean drop velocity
+            b2Body_SetLinearVelocity(body, {direction * 0.3f, 0.0f});
+            b2Body_SetAngularVelocity(body, 0.0f);
+            b2Body_SetAwake(body, true);
+            this->setPosition(pos);
+            dawg->setTargetLocation(pos.x);
+        }
+    }
+
+    void Stick::updateHoldingPosition(glm::vec3 playerPos) {
+        // Sync the internal position vectors so our distance calculations
+        // are accurate if we check distance immediately after dropped!
+        this->playerPos = playerPos;
+        this->position = playerPos;
+        sprite->setPosition(playerPos);
+    }
+
+    void Stick::teleport(Game* game, glm::vec3 correspVentPos) {
+        isVisible = true;
+        this->dropStick(correspVentPos, 1.0f);
+        isTimerActive = true;
+        maxTime = 1.5f;
+    }
 
     Stick::~Stick() {
         glDeleteVertexArrays(1, &vao);

@@ -52,20 +52,21 @@ namespace gl3 {
         body = b2CreateBody(physicsWorld, &boxBodyDef);
 
         auto bodyPos = b2Body_GetTransform(body);
-        std::cout << "POSITION BODY BOX " << bodyPos.p.x << " " << bodyPos.p.y << " " <<  std::endl;
+        //std::cout << "POSITION BODY BOX " << bodyPos.p.x << " " << bodyPos.p.y << " " <<  std::endl;
         glm::vec3 spritepos = sprite->getPosition();
-        std::cout << "SPRITE POSITION BOX " << spritepos.x << spritepos.y << spritepos.z << std::endl;
-        std::cout << "BOY HALFWIDTH " << halfWidth << "BOY HALFHEIGHT " << halfHeight << std::endl;
+        //std::cout << "SPRITE POSITION BOX " << spritepos.x << spritepos.y << spritepos.z << std::endl;
+        //std::cout << "BOY HALFWIDTH " << halfWidth << "BOY HALFHEIGHT " << halfHeight << std::endl;
         glm::vec3 spriteScale = sprite->getScale();
         float spriteWidth = spriteScale.x;
         float spriteHeight = spriteScale.y;
-        std::cout << " WIDTH SPRITE " << spriteWidth << "HEIGHT SPRITE  " << spriteHeight << std::endl;
+        //std::cout << " WIDTH SPRITE " << spriteWidth << "HEIGHT SPRITE  " << spriteHeight << std::endl;
 
 
 
         //Define box shape
         b2Polygon box = b2MakeBox(halfWidth, halfHeight);
         b2ShapeDef boxShapeDef = b2DefaultShapeDef();
+
         boxShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_BOX;
         boxShapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_FLOOR |
                                   gl3::PhysicsCategories::CATEGORY_WALL |
@@ -74,7 +75,8 @@ namespace gl3 {
                                           gl3::PhysicsCategories::CATEGORY_STICK |
                                               gl3::PhysicsCategories::CATEGORY_PLAYER |
                                       gl3::PhysicsCategories::CATEGORY_DOOR |
-                                          gl3::PhysicsCategories::CATEGORY_SWITCH;
+                                          gl3::PhysicsCategories::CATEGORY_SWITCH |
+                                              gl3::PhysicsCategories::CATEGORY_RAY_SENSOR;
         shape = b2CreatePolygonShape(body, &boxShapeDef, &box);
         //b2Shape_SetUserData(shape, this);             // <<< IMPORTANT: let contact system identify this Box
         b2Shape_SetFriction(shape, 0.1f); // friction of box sides/bottom
@@ -169,8 +171,14 @@ namespace gl3 {
             b2Body_SetLinearVelocity(body, vel);
             b2Shape_SetFriction(shape, 0.8f);
         }
+        b2Vec2 bodyPos = b2Body_GetPosition(body);
 
-        // Sleep when stationary
+        // Update both the Entity base position data and the internal Sprite engine position!
+        this->position.x = bodyPos.x;
+        this->position.y = bodyPos.y;
+        this->sprite->setPosition(glm::vec3(bodyPos.x, bodyPos.y, this->position.z));
+
+        // --- Sleep check logic below ---
         b2Vec2 vel = b2Body_GetLinearVelocity(body);
         float speed = sqrtf(vel.x * vel.x + vel.y * vel.y);
 
@@ -183,6 +191,7 @@ namespace gl3 {
         } else {
             stillTime = 0.0f;
         }
+
     }
 
     float Box::GetHalfHeight() const {
@@ -211,7 +220,7 @@ namespace gl3 {
     void Box::startContact(Entity* other) {
         if (other->getType() == EntityType::Player) {
             this->playerContactCount++;
-            activePlayer = static_cast<Ship*>(other); // Grip the real player
+            activePlayer = dynamic_cast<Ship*>(other); // Grip the real player
         }
        // playerContactCount++;
         std::cout << "[Box::startContact] this=" << this

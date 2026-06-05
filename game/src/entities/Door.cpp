@@ -32,7 +32,7 @@ namespace gl3 {
     void Door::createPhysicsBody() {
 
         b2BodyDef doorBodyDef = b2DefaultBodyDef();
-        doorBodyDef.type = b2_kinematicBody;
+        doorBodyDef.type = b2_staticBody;
         doorBodyDef.position = b2Vec2{position.x,position.y};
         doorBodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &doorBodyDef);
@@ -43,7 +43,9 @@ namespace gl3 {
         doorShapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
                                gl3::PhysicsCategories::CATEGORY_SEC_BOT |
                                    gl3::PhysicsCategories::CATEGORY_DOG  |
-                                       gl3::PhysicsCategories::CATEGORY_STICK; // <--- IMPORTANT
+                                       gl3::PhysicsCategories::CATEGORY_STICK |
+                                           gl3::PhysicsCategories::CATEGORY_BOX |
+                                               gl3::PhysicsCategories::CATEGORY_RAY_SENSOR;
         // 2. Ensure contact events are enabled (Box2D sometimes needs this for static bodies)
         doorShapeDef.enableContactEvents = true;
         shape = b2CreatePolygonShape(body, &doorShapeDef, &doorShape);
@@ -84,7 +86,9 @@ namespace gl3 {
         closedFilter.categoryBits = gl3::PhysicsCategories::CATEGORY_DOOR;
         closedFilter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
                                 gl3::PhysicsCategories::CATEGORY_SEC_BOT |
-                                gl3::PhysicsCategories::CATEGORY_DOG;
+                                gl3::PhysicsCategories::CATEGORY_DOG |
+                                    gl3::PhysicsCategories::CATEGORY_BOX |
+                                        gl3::PhysicsCategories::CATEGORY_RAY_SENSOR ;
 
         b2Shape_SetFilter(shape, closedFilter);
 

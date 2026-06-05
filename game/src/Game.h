@@ -26,6 +26,13 @@ namespace gl3 {
             UI = 100
         };
     public:
+        enum GameState {
+            Paused,
+            GameOver,
+            Playing,
+            MainMenu
+        };
+    public:
         Game(int width, int height, const std::string &title);
         virtual ~Game();
         void run();
@@ -35,6 +42,7 @@ namespace gl3 {
         GLFWwindow *getWindow() { return window; }
         const b2WorldId getPhysicsWorld() const;
         const b2Vec2 getGravity() const;
+        int getIdToLoad() { return idToLoad; }
         float getDeltaTime() { return deltaTime; }
         float aspect = 0.0f;
         void setShip(Ship *player) { this->ship = player; }
@@ -42,7 +50,6 @@ namespace gl3 {
         // Based on your 720p window and zoom=2.0f, the ratio is 180:1
         static constexpr float PTM_RATIO = 100.0f;
         bool isGameOver = false;
-        void drawGameOverOverlay();
         void requestSceneSwitch(int ID);
         void switchScene (int ID);
 
@@ -53,6 +60,7 @@ namespace gl3 {
         void SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
 
     private:
+        bool ESCWasPressed = false;
         int pendingLevelID = -1; // -1 means no switch requested
         static b2WorldDef worldDef;
         bool firstFrame = true;
@@ -61,9 +69,9 @@ namespace gl3 {
         void update();
         void draw();
         void updateDeltaTime();
-        void updatePhysics();
         void resetGame();
-        void setScene(std::unique_ptr<Scene> newScene);
+        GameState currentState = GameState::MainMenu;
+        Sprite* menuSprite = nullptr;
         std::unique_ptr<Scene> currentScene;
 
         // Keep it simple
@@ -84,6 +92,9 @@ namespace gl3 {
         Ship *ship = nullptr;
         int boxOnPlateCount = 0;
         int playerOnPlateCount = 0;
+        int idToLoad = 0;
+        bool levelLoaded = false;
+        bool oneWasPressed = false;
         SoLoud::Soloud audio;
         std::unique_ptr<SoLoud::Wav> backgroundMusic;
         float lastFrameTime = 1.0f/60;

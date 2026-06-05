@@ -1,16 +1,9 @@
-# Type    X      Y       SX     SY     LinkID
-# -------------------------------------------
-Floor     0.0   -0.99    100.0  0.1    0
-
-# Move Switch Y from -1.01 to -0.89 (Slightly above the floor surface)
-Switch    0.0   -0.94    0.6    0.16    101
-
-# Door Y (Let's place it at 0.0 to be safe)
-Door      3.0    -0.3    0.4    1.5    101
-# The Player (Ship)
-Ship      2.0    -0.48   0.4    1.0    0
-
-# Props and Others
-Box       1.0    -0.64   0.6    0.6    0
-Dog      -1.0    -0.1     0.5    0.5    0
-Stick    -1.5    0.0     0.3    0.08   0
+# Type    X      Y       SX     SY     LinkID  isGround  is_Exit  FloorID
+# ------------------------------------------------------------------------
+Floor     0.0   -0.99    100.0  0.1    0       1         0        0
+Ship      -3.0  -0.48    0.4    1.0    0       0         0        0
+Switch    -0.5  -0.94    0.6    0.16   101     0         0        0
+Door      3.0   -0.3     0.4    1.5    101     0         0        0
+Box       0.3   -0.64    0.6    0.6    0       0         0        0
+#SecBot    2.0   -0.44    0.8    0.8    0       0         0        0
+LaserGuy    2.0   -0.5    0.8    0.9    0       0         0        0
