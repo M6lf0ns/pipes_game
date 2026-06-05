@@ -1,6 +1,6 @@
 #pragma once
 #include "Entity.h"
-#include "Ship.h"
+
 #include "../Sprite.h"
 #include "box2d/types.h"
 #include "../rendering/Texture.h"
@@ -14,7 +14,8 @@ namespace gl3 {
         void draw(Game *game) override;
         void onSensorEnter(Entity* other) override;
         void onSensorExit(Entity* other) override;
-        float getHalfHeight();
+        // Change this in Ladder.h
+        float getTopY() { return this->position.y + this->halfHeight; }
 
 
 
@@ -25,6 +26,7 @@ namespace gl3 {
 
     private:
         float halfWidth, halfHeight;
+        float sensorHeight;
 
 
     };

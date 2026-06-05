@@ -2,7 +2,6 @@
 #include "../entities/Entity.h"
 #include <memory>
 #include <vector>
-
 #include "box2d/id.h"
 namespace gl3 {
     class Game;
@@ -18,6 +17,7 @@ namespace gl3 {
             UI = 100
         };
 
+
         Scene(Game* gamePtr) : game(gamePtr) {}
         virtual ~Scene();
         void loadLevelData(const std::string& levelName, b2WorldId world);
@@ -29,8 +29,13 @@ namespace gl3 {
         void setPhysicsWorld(b2WorldId world) {PhysicsWorld = world;};
         void setGame(Game* gamePtr) { this->game = gamePtr; }
         int getLevelID() const { return levelID; }
+        std::vector<std::unique_ptr<Entity>>& getEntities() { return entities; }
+        // Match the typedef: 2 shapes, 2 vec2s, 1 context
+        static bool MyPreSolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB,
+                               b2Vec2 point, b2Vec2 normal, void* context);
 
-
+        // // Update the helper to accept the normal
+        // bool IsHittingFromBelow(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Vec2 normal);
 
 
     protected:
@@ -38,7 +43,10 @@ namespace gl3 {
         b2WorldId PhysicsWorld;
         std::unique_ptr<gl3::Shader> spriteShader;
         std::vector<std::unique_ptr<Entity>> entities;
+        std::vector<gl3::Vent*> allVents;
         Game* game = nullptr;
+        Ship* ship = nullptr;
+
 
     private:
 

@@ -8,4 +8,8 @@
 #include "SecBot.h"
 #include "Stick.h"
 #include "Ladder.h"
+#include "SpeakerSwitch.h"
+#include "Speaker.h"
+#include "Vent.h"
+#include "Wall.h"
 

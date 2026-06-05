@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 
 namespace gl3 {
     class PhysicsCategories{
@@ -19,8 +19,12 @@ namespace gl3 {
         static const FilterCategory CATEGORY_SWITCH = 0x000000000000100ULL;
         static const FilterCategory CATEGORY_DOG = 0x000000000002000ULL;
         static const FilterCategory CATEGORY_LADDER = 0x000000000004000ULL;
+        static const FilterCategory CATEGORY_SPEAKER = 0x000000000008000ULL;
+        static const FilterCategory CATEGORY_SPEAKER_SWITCH = 0x0000000000010000ULL;
+        static const FilterCategory CATEGORY_VENT = 0x0000000000200000ULL;
+        static const FilterCategory CATEGORY_RAY_SENSOR = 0x0000000000400000ULL;
+        static const FilterCategory CATEGORY_LASER_EYES = 0x0000000008000000ULL;
         // ... all other CATEGORY constants ...
-        static const FilterCategory CATEGORY_VISION_SENSOR = 0x0000000000000080ULL;
 
         // A convenient mask that includes ALL physical bodies (for general collision checks)
         static const FilterCategory MASK_ALL_PHYSICAL =

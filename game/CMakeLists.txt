@@ -42,13 +42,21 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Dog.h
         src/levels/Scene.cpp
         src/levels/Scene.h
-        src/levels/level1.cpp
-        src/levels/level1.h
-        src/levels/level2.cpp
-        src/levels/level2.h
         src/entities/entities.h
         src/entities/ladder.cpp
         src/entities/ladder.h
+        src/entities/Speaker.cpp
+        src/entities/Speaker.h
+        src/entities/SpeakerSwitch.cpp
+        src/entities/SpeakerSwitch.h
+        src/entities/Vent.cpp
+        src/entities/Vent.h
+        src/entities/Wall.cpp
+        src/entities/Wall.h
+        src/entities/LaserGuy.cpp
+        src/entities/LaserGuy.h
+        src/physics/PhysicsUtils.h
+        src/physics/PhysicsUtils.cpp
 
 )
 

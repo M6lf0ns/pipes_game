@@ -34,6 +34,10 @@ namespace gl3 {
         if (body.index1 != 0) {  // Check if body is valid
             b2Body_SetTransform(body, b2Vec2{newPosition.x, newPosition.y}, b2Body_GetRotation(body)); //already sets sprite on the ground,if not, sprite falls onto ground
         }
+
+        if (this->sprite) {
+            this->sprite->setPosition(glm::vec3(newPosition.x, newPosition.y, 0.0f));
+        }
     }
 
     void Entity::draw(Game *game) {
@@ -101,4 +105,16 @@ namespace gl3 {
     void Entity::onSensorExit(Entity* other) {
 
     }
+
+    void Entity::Freeze() {
+
+    }
+
+    void Entity::UnFreeze() {
+
+    }
+
+
+
+
 }

@@ -9,8 +9,8 @@
 namespace gl3 {
 
     // Floor.cpp
-    Floor::Floor(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, const std::string& texturePath)
-       : Entity(shader, position, scale, physicsWorld, EntityType::Floor)
+    Floor::Floor(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, bool isGround, int id,  const std::string& texturePath)
+       : Entity(shader, position, scale, physicsWorld, EntityType::Floor), isGround(isGround), floorID(id)
     {
         // 1. Set these FIRST so createPhysicsBody can use them
         this->halfWidth = scale.x / 2.0f;
@@ -42,7 +42,11 @@ namespace gl3 {
 
         b2ShapeDef groundShapeDef = b2DefaultShapeDef();
         groundShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_FLOOR;
-        groundShapeDef.filter.maskBits = 0xFFFF;
+        // CRITICAL: Ensure the maskBits includes the sensor!
+        groundShapeDef.filter.maskBits = gl3::PhysicsCategories::MASK_ALL_PHYSICAL |
+                                        gl3::PhysicsCategories::CATEGORY_RAY_SENSOR |
+                                            gl3::PhysicsCategories::CATEGORY_DOG | gl3::PhysicsCategories::CATEGORY_STICK;
+        groundShapeDef.enablePreSolveEvents = true;
 
         shape = b2CreatePolygonShape(body, &groundShapeDef, &groundBox);
         b2Shape_SetUserData(shape, this);
@@ -51,6 +55,7 @@ namespace gl3 {
     float Floor::GetFloorY() const {
         return floorY;
     }
+
 
     float Floor::GetHalfHeight() const {
         return floorHalfHeight;

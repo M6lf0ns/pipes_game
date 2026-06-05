@@ -15,48 +15,79 @@ namespace gl3 {
         physicsWorld,
         EntityType::Dog) {
 
-        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/test_secBot.png"));
-        this->setZOrder(2);
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/hog_idle.png"));
+        this->setZOrder(3);
         Dog::createPhysicsBody();
 
     }
 
-    void Dog::update(Game *game, float deltaTime) {
-
-        // In Dog::update
-        b2Vec2 dogPos = b2Body_GetPosition(body);
-        // std::cout << "Dog Physical Left Edge: " << (dogPos.x - dogRadius) << std::endl;
-        Entity::update(game, deltaTime);
-        if (this->stickHasLanded) {
-            b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
-            float distance = std::abs(targetLocation - position.x);
-            float stopThreshold = 0.05f; // Adjust this based on your scale
-            float direction = (targetLocation > position.x) ? 1.0f : -1.0f;
-            std::cout << "DOG: ACTUALLY MOVING NOW" << std::endl;
-            if (distance < stopThreshold) {
-                b2Body_SetLinearVelocity(body, b2Vec2_zero);
-            }
-            else {
-                b2Body_SetLinearVelocity(body,{static_cast<float>(0.5f * direction), currentVel.y});
-            }
-
-
-            // 3. Force it to stay awake
-            b2Body_SetAwake(body, true);
-
-        }
-
-
+    void Dog::draw(Game *game) {
+        if (!isVisible) return;
+        Entity::draw(game);
     }
 
 
 
 
+   void Dog::update(Game *game, float deltaTime) {
+    Entity::update(game, deltaTime);
+
+    if (this->stickHasLanded) {
+
+        // 1. ALWAYS CHECK TELEPORTATION FIRST
+        if (enVent && exVent) {
+            float distance = glm::distance(enVent->getPosition().x, this->getPosition().x);
+            float maxAllowedDist = 0.01f;
+            if (distance <= maxAllowedDist) {
+                glm::vec3 exVentPos = exVent->getPosition();
+
+                // Teleport physical body and rendering position
+                b2Body_SetTransform(body, {exVentPos.x, exVentPos.y}, b2MakeRot(0.0f));
+                this->position = exVentPos;
+
+                // Shut down state variables cleanly
+                this->stickHasLanded = false;
+                b2Body_SetLinearVelocity(body, b2Vec2_zero);
+
+                this->setEntryVent(nullptr);
+                this->setExitVent(nullptr);
+                return; // Exit completely so no movement calculations happen!
+            }
+        }
+
+        // 2. MOVEMENT CALCULATIONS ONLY RUN IF WE DID NOT TELEPORT
+        b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
+        float dist = std::abs(targetLocation - position.x);
+        float stopThreshold = 0.05f;
+        float direction = (targetLocation > position.x) ? 1.0f : -1.0f;
+
+        std::cout << "DOG POS: " << position.x
+                  << " | TARGET: " << targetLocation
+                  << " | DIST: " << dist
+                  << " | VEL: " << currentVel.x << std::endl;
+
+        if (dist < stopThreshold) {
+            b2Body_SetLinearVelocity(body, b2Vec2_zero);
+        }
+        else {
+            b2Body_SetLinearVelocity(body, {static_cast<float>(0.5f * direction), currentVel.y});
+            if (direction > 0.0f) {
+                sprite->setScale(glm::vec3(abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
+            }
+            else {
+                sprite->setScale(glm::vec3(-abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
+            }
+        }
+
+        b2Body_SetAwake(body, true);
+    }
+}
+
     void Dog::createPhysicsBody() {
 
         // 1. Calculate radius locally first to ensure it's valid
-        float radius = scale.y / 2.0f;
-        if (radius <= 0.0f) radius = 0.5f; // Emergency fallback
+        float radius = scale.x / 3.0f;
+        //if (radius <= 0.0f) radius = 0.5f; // Emergency fallback
 
         b2BodyDef bodyDef = b2DefaultBodyDef();
         bodyDef.type = b2_dynamicBody;
@@ -74,7 +105,8 @@ namespace gl3 {
                                   gl3::PhysicsCategories::CATEGORY_WALL |
                                   gl3::PhysicsCategories::CATEGORY_BOX |
                                       gl3::PhysicsCategories::CATEGORY_DOOR |
-                                          gl3::PhysicsCategories::CATEGORY_SWITCH;
+                                          gl3::PhysicsCategories::CATEGORY_SWITCH |
+                                              gl3::PhysicsCategories::CATEGORY_VENT;
 
 
         dogShapeDef.userData = this;
@@ -86,17 +118,24 @@ namespace gl3 {
         std::cout << "[DOG DEBUG] Created with Radius: " << radius << " at Pos: " << position.x << ", " << position.y << std::endl;
         b2Shape_SetFriction(shape, 0.3f);
         b2Shape_SetRestitution(shape, 0.1f);
+        // This is crucial for sensors to "see" this dynamic body
+        b2Shape_EnableSensorEvents(shape, true);
 
 
         b2MassData massData = b2Body_GetMassData(body);
         massData.rotationalInertia = 0.0f;
         b2Body_SetMassData(body, massData);
         b2Body_SetAwake(body, true); // Force the dog to start moving immediately
+
     }
 
 
     void Dog::startContact(Entity* other) {
-
+        if (other) {
+            std::cout << "[DOG COLLISION] Hit an entity of type: "
+                      << static_cast<int>(other->getType())
+                      << " at position X: " << other->getPosition().x << std::endl;
+        }
     }
 
 
