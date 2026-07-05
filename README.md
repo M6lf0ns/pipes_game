@@ -1,93 +1,86 @@
-# GL3
+`Please edit this README to fit your project and keep it up-to-date with your concept.`
 
+`All final deliverables (code, executable game, report, trailer and poster) have to be committed, tagged as final and pushed to your GitLab repository.`
 
+# GameLab Project Repository
 
-## Getting started
+|  General Info  | |
+| ---|---|
+| Working Title | `Edit me!` |
+| Final Title | `Edit me!` |
+| Student | `Name`, `edit-me`@stud-mail.uni-wuerzburg.de, `s######` |
+| Target Platform(s) | `Edit me!` |
+| Start Date | 21.10.2019 |
+| Study Program | Games Engineering B.Sc.|
+| Engine Version | Unity 2021.3.11f1 or Unreal 5.0.3 |
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### Abstract
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+`Insert your project description here, and keep it up-to-date.`
 
-## Add your files
+`--- 8< --- READ, THEN REPLACE WITH CUSTOM CONTENT BELOW HERE --- 8< ---`
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Repository Usage Guides
 
 ```
-cd existing_repo
-git remote add origin https://gitlab2.informatik.uni-wuerzburg.de/s452739/gl3.git
-git branch -M main
-git push -uf origin main
+RepositoryRoot/
+    ├── README.md           // This should reflect your project 
+    │                       //  accurately, so always merge infor- 
+    │                       //  mation from your concept paper 
+    │                       //  with the readme
+    ├── builds/             // Archives (.zip) of built executables of your projects
+    │                       //  including (non-standard) dependencies
+    ├── code/
+    │   ├── engine/         // Place your project folder(s) here
+    │   ├── my-game-1/      // No un-used folders, no "archived" folders
+    │   ├── CMakeLists.txt  // e.g. if using CMake, this can be your project root
+    │   └── ...
+    ├── documentation/      // GL2/3 - Each project requires FULL documentation  
+    │                       //   i.e. API Docs, Handbook, Dev Docs
+    ├── poster/             // PDF of your Poster(s)
+    ├── report/             // PDF
+    └── trailer/            // .mp4 (final trailer, no raw material)
 ```
 
-## Integrate with your tools
+### Project and Source Control
 
-- [ ] [Set up project integrations](https://gitlab2.informatik.uni-wuerzburg.de/s452739/gl3/-/settings/integrations)
+Read more about Git in the [Atlassian Git Tutorials](https://de.atlassian.com/git).
 
-## Collaborate with your team
+#### Avoiding Clutter with .gitignore
+Gitignore files allow to exclude certain patterns from being versioned.
+This is necessary to avoid unnecessary (and possibly harmful) cluttering of your repository.
+Especially the automatically generated project and cache files of VisualStudio, Unity, or Unreal projects should be ignored.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+You can find [a selection of *.gitignore* files publicly available on GitHub](https://github.com/github/gitignore).
 
-## Test and Deploy
+##### Quick Check if .gitignore is working
 
-Use the built-in continuous integration in GitLab.
+Your *.gitignore* is not correctly set up, if
+* your repository contains Folders such as `Library`, `DerivedDataCache` or `Saved`
+* `cache` files, `visual studio` project files etc. are `shown as modified` before commiting with your git client
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+In this case, check your setup.
+Be aware that *.gitignore* is the actual, required filename!
 
-***
+#### Versioning Binary Assets with Git LFS and .gitattributes
+Gitattribute files define file types to be handled through the Git Large File Storage (Git LFS) System.
+This system does not handle binary files, such as assets, images, meshes, etc. well.
+Even minimal changes add the whole file to the projects history.
+Git LFS identifies iterations of binary files using a hash in the repository, but stores the actual binary data transparently in a seperate data silo.
 
-# Editing this README
+To let Git LFS track a certain file (e.g. recursively all *.jpg*), execute this command:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+	> git lfs track *.jpg
 
-## Suggestions for a good README
+This command creates the following entry in the *.gitattributes* file:
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+	*.jpg filter=lfs diff=lfs merge=lfs -text
 
-## Name
-Choose a self-explaining name for your project.
+Git LFS is installed on all Workstations in E37 and the GameLabs.
+For your private computer, you can [download Git LFS here](https://git-lfs.github.com/).
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+#### Further Reading: 
+* [Epic on Git for Unreal](https://wiki.unrealengine.com/Git_source_control_(Tutorial)#Workarounds_for_dealing_with_binary_files_on_your_Git_repository)
+* [GitLFS](https://www.git-lfs.com)
+* [Git](https://www.git-scm.com)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
