@@ -12,10 +12,11 @@ namespace gl3 {
         enum Botstate {
             patrol,
             chase,
-            search
+            search,
+            freeze
         };
         public:
-        explicit SecBot(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), int floorID = 0, b2WorldId physicsWorld = b2_nullWorldId);
+        explicit SecBot(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0),float rotation = 0.0f, int floorID = 0, b2WorldId physicsWorld = b2_nullWorldId);
         void update(Game *game, float deltaTime) override;
         void startContact(Entity* other) override;
         void setShip(Ship* sship) {ship = sship;}
@@ -36,7 +37,14 @@ namespace gl3 {
         //void debugCheckAABBOverlap();
 
     private:
+        std::vector<GLuint> patrolFrames;
+        std::vector<GLuint> chaseFrames;
+        std::vector<GLuint> searchFrames;
+        int animFrame = 0;          // Which frame index are we currently showing?
+        float animTimer = 0.0f;     // Tracks time passed *within* the current frame
+        const float frameDuration = 0.1f; // How long each frame stays on screen (0.1s = 10 FPS)
 
+        float rotationAng;
         Floor* currentFloor = nullptr;
         Ship* ship = nullptr;
         float detectionTimer = 0.0f;

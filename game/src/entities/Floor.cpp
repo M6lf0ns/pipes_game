@@ -44,6 +44,7 @@ namespace gl3 {
         groundShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_FLOOR;
         // CRITICAL: Ensure the maskBits includes the sensor!
         groundShapeDef.filter.maskBits = gl3::PhysicsCategories::MASK_ALL_PHYSICAL |
+            gl3::PhysicsCategories::CATEGORY_SEC_BOT |
                                         gl3::PhysicsCategories::CATEGORY_RAY_SENSOR |
                                             gl3::PhysicsCategories::CATEGORY_DOG | gl3::PhysicsCategories::CATEGORY_STICK;
         groundShapeDef.enablePreSolveEvents = true;

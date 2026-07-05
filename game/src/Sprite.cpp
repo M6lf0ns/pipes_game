@@ -20,12 +20,15 @@ namespace gl3 {
      }
 
      void Sprite::initRenderData() { //Quad that will be used by every entity to render the image onto it
+         if (VAO != 0) {
+             return;
+         }
          float vertices[] = {
              // positions   // tex coords
-             0.5f, 0.5f, 0.0f, 1.0f,
-              -0.5f, 0.5f, 1.0f, 1.0f,
-              -0.5f,  -0.5f, 1.0f, 0.0f,
-             0.5f,  -0.5f, 0.0f, 0.0f
+             0.5f,  0.5f,   1.0f, 1.0f, // Top-Right -> 1.0, 1.0
+             -0.5f, 0.5f,   0.0f, 1.0f, // Top-Left  -> 0.0, 1.0
+             -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-Left -> 0.0, 0.0
+              0.5f, -0.5f,  1.0f, 0.0f  // Bottom-Right -> 1.0, 0.0
          };
 
          glGenVertexArrays(1, &VAO);
@@ -49,6 +52,8 @@ namespace gl3 {
     // Change the signature to take the pre-calculated matrix
     void Sprite::draw(Shader& shader, const glm::mat4& mvp) {
          shader.use();
+
+
          shader.setMatrix("mvp", mvp);
          shader.setVector("spriteColor", this->color);
 

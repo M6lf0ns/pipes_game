@@ -5,14 +5,15 @@
 #include "../Game.h"
 
 namespace gl3 {
-    Entity::Entity(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, EntityType type) :
+    Entity::Entity(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, EntityType type, float initialRotation) :
             shader(shader),
             position(position),
             scale(scale),
             physicsWorld(physicsWorld),
             body(b2_nullBodyId),
             shape(b2_nullShapeId),
-            type(type)
+            type(type),
+    zRotation(initialRotation)
     {}
 
     Entity::~Entity()
@@ -80,9 +81,12 @@ namespace gl3 {
         this->position.x = physicsTransform.p.x;
         this->position.y = physicsTransform.p.y;
 
-        // 3. Convert Radians to Degrees for OpenGL
-        this->zRotation = glm::degrees(b2Rot_GetAngle(physicsTransform.q));
-
+        // --- ADD THIS CHECK ---
+        // Only update rotation from physics if this entity is NOT a LaserGuy
+        // (Or create a flag like 'isPhysicsControlled')
+        if (this->type != EntityType::LaserGuy) {
+            this->zRotation = glm::degrees(b2Rot_GetAngle(physicsTransform.q));
+        }
         // 4. Force the Sprite to follow the Physics Center
         if (sprite != nullptr) {
             // This ensures the DRAW position is exactly the PHYSICS position

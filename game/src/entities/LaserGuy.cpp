@@ -4,23 +4,32 @@
 #include "../rendering/Texture.h"
 #include "box2d/box2d.h"
 #include "box2d/src/body.h"
-#include <iostream>d
+#include <iostream>
+#include "MirrorCube.h"
+#include "Mirror.h"
+#include <thread>
+#include <chrono>
 
 
 namespace gl3 {
-    LaserGuy::LaserGuy(Shader *shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld) :
-    Entity(shader,
-        position,
-        scale,
-        physicsWorld,
-        EntityType::LaserGuy)
-    {
-        this->sprite = new Sprite(position, glm::vec3 (-scale.x,scale.y, scale.z), Texture::LoadTexture("assets/textures/temp_laserEyes.png"));
+    LaserGuy::LaserGuy(Shader *shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld,
+                       float initAngle) : Entity(shader,
+                                                 position,
+                                                 scale,
+                                                 physicsWorld,
+                                                 EntityType::LaserGuy,
+                                                 initAngle) {
+        this->sprite = new Sprite(position, glm::vec3(scale.x, scale.y, scale.z),
+                                  Texture::LoadTexture("assets/textures/laser_eyes.png"));
         this->setZOrder(2);
+
+
         // 1. Allocate the 3 separate laser piece sprites
         this->laserHeadSprite = new Sprite(position, scale, 0);
-        this->laserBodySprite = new Sprite(position, scale, 0);
         this->laserTailSprite = new Sprite(position, scale, 0);
+        this->laserBodySprite = new Sprite(position, scale, 0);
+        this->laserCornerSprite = new Sprite(position, scale, 0);
+
 
         // 2. Load Head Animation Frames
         headFrames.push_back(Texture::LoadTexture("assets/textures/laser_head_1.png"));
@@ -30,6 +39,14 @@ namespace gl3 {
         headFrames.push_back(Texture::LoadTexture("assets/textures/laser_head_5.png"));
         headFrames.push_back(Texture::LoadTexture("assets/textures/laser_head_6.png"));
 
+        // 4. Load Tail Animation Frames
+        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_1.png"));
+        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_2.png"));
+        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_3.png"));
+        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_4.png"));
+        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_5.png"));
+        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_6.png"));
+
         // 3. Load Body Animation Frames
         bodyFrames.push_back(Texture::LoadTexture("assets/textures/laser_body_1.png"));
         bodyFrames.push_back(Texture::LoadTexture("assets/textures/laser_body_2.png"));
@@ -38,70 +55,561 @@ namespace gl3 {
         bodyFrames.push_back(Texture::LoadTexture("assets/textures/laser_body_5.png"));
         bodyFrames.push_back(Texture::LoadTexture("assets/textures/laser_body_6.png"));
 
-        // 4. Load Tail Animation Frames
-        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_1.png"));
-        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_2.png"));
-        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_3.png"));
-        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_4.png"));
-        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_5.png"));
-        tailFrames.push_back(Texture::LoadTexture("assets/textures/laser_end_6.png"));
+        edgeFrames.push_back(Texture::LoadTexture("assets/textures/corner_1.png"));
+        edgeFrames.push_back(Texture::LoadTexture("assets/textures/corner_2.png"));
+        edgeFrames.push_back(Texture::LoadTexture("assets/textures/corner_3.png"));
+        edgeFrames.push_back(Texture::LoadTexture("assets/textures/corner_4.png"));
+        edgeFrames.push_back(Texture::LoadTexture("assets/textures/corner_5.png"));
+        edgeFrames.push_back(Texture::LoadTexture("assets/textures/corner_6.png"));
+
         LaserGuy::createPhysicsBody();
 
+        // b2Body_SetTransform(body,{position.x, position.y},b2MakeRot(glm::radians(-180.0f)));
     }
- void LaserGuy::draw(Game *game) {
-    // 1. Always draw LaserGuy base asset first
-    Entity::draw(game);
 
-    // 2. If firing, render the synchronized 3-piece laser
-    if (currentState == LaserState::firing) {
+    void LaserGuy::draw(Game *game) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+
+        Entity::draw(game);
+
+
+        if (currentState != LaserState::firing || !isRaycastReady) return;
+
+
+        // Snapshot the data to prevent race conditions during the draw call
+
+
+        std::vector<glm::vec2> pointsSnapshot = laserPoints;
+
+
+        std::vector<int> mirrorSnapshot = segmentEndsOnMirror;
+
+
+        // Add this check after your snapshot
+
+
+        if (!laserHeadSprite || !laserTailSprite || !laserBodySprite || !laserCornerSprite) {
+            std::cout << "[FATAL] A sprite pointer is NULL!" << std::endl;
+
+
+            return;
+        }
+
+
+        if (pointsSnapshot.size() < 2) return;
+
+
+        // Add this safety check
+
+
+        if (animFrame >= headFrames.size() || animFrame >= tailFrames.size() ||
+
+
+            animFrame >= bodyFrames.size() || animFrame >= edgeFrames.size()) {
+            return; // Stop the draw call, the animation data is invalid right now
+            }
+
+
         this->laserHeadSprite->setTexture(headFrames[animFrame]);
-        this->laserBodySprite->setTexture(bodyFrames[animFrame]);
+
+
         this->laserTailSprite->setTexture(tailFrames[animFrame]);
 
-        // --- Align visual origin perfectly with your raycast eye origin ---
-        float spriteDir = sprite->getScale().x > 0.0f ? 1.0f : -1.0f;
-        glm::vec3 eyeOrigin = glm::vec3(
-            this->position.x + (spriteDir * eyeOffsetX),
-            this->position.y + eyeOffsetY,
-            this->position.z
-        );
 
-        float startX = eyeOrigin.x;
-        float endX = currentHitPoint.x;
-        float totalDistance = std::abs(endX - startX);
-        float direction = (endX > startX) ? 1.0f : -1.0f;
+        this->laserBodySprite->setTexture(bodyFrames[animFrame]);
 
-        // --- UNIFORM LASER DIMENSIONS ---
+
+        this->laserCornerSprite->setTexture(edgeFrames[animFrame]);
+
+
+        float laserThickness = 0.2f;
+
+
         float headWidth = 0.4f;
+
+
         float tailWidth = 0.4f;
-        float bodyWidth = totalDistance - (headWidth + tailWidth);
-        if (bodyWidth < 0.0f) bodyWidth = 0.0f;
 
-        // NEW: Force every single piece to use this exact thickness instead of scale.y!
-        float laserThickness = 0.2f; // Adjust this down (e.g., 0.1f) to make the whole beam thinner
 
-        // --- DRAW HEAD ---
-        glm::vec3 headPos = glm::vec3(startX + (direction * (headWidth / 2.0f)), eyeOrigin.y, eyeOrigin.z);
-        glm::vec3 headScale = glm::vec3(headWidth * -direction, laserThickness -0.07f, 1.0f); // <-- Fixed thickness
-        glm::mat4 headMvp = game->calculateMvpMatrix(headPos, 0.0f, headScale);
-        laserHeadSprite->draw(*shader, headMvp);
+        debugBodyDrawCount = 0;
 
-        // --- DRAW BODY ---
-        glm::vec3 bodyPos = glm::vec3(startX  + 0.0075f +(direction * (headWidth + (bodyWidth / 2.0f))), eyeOrigin.y, eyeOrigin.z);
-        glm::vec3 bodyScale = glm::vec3(bodyWidth * -direction, laserThickness, 1.0f); // <-- Fixed thickness
-        glm::mat4 bodyMvp = game->calculateMvpMatrix(bodyPos, 0.0f, bodyScale);
-        laserBodySprite->draw(*shader, bodyMvp);
 
-        // --- DRAW TAIL ---
-        glm::vec3 tailPos = glm::vec3(endX + 0.73f +(direction * (tailWidth / 2.0f)), eyeOrigin.y, eyeOrigin.z);
-        glm::vec3 tailScale = glm::vec3(tailWidth * -direction, laserThickness + 0.5f, 1.0f); // <-- Fixed thickness
-        glm::mat4 tailMvp = game->calculateMvpMatrix(tailPos, 0.0f, tailScale);
-        laserTailSprite->draw(*shader, tailMvp);
+        // To this:
+
+        if (pointsSnapshot.size() != mirrorSnapshot.size() + 1) {
+            std::cout << "[CRITICAL ERROR] Mismatch: Points=" << pointsSnapshot.size()
+
+                    << " MirrorFlags=" << mirrorSnapshot.size() << std::endl;
+        }
+
+
+        // --- PASS 1: DRAW ALL BODIES ---
+
+        size_t numSegments = mirrorSnapshot.size();
+
+
+        for (size_t i = 0; i < numSegments; ++i) {
+            if (i  >= pointsSnapshot.size()) {
+                std::cout << "[CRITICAL ERROR] Loop OOB detected at i=" << i << std::endl;
+
+
+                break;
+            }
+
+            glm::vec2 start = pointsSnapshot[i];
+
+
+            glm::vec2 end = pointsSnapshot[i + 1];
+
+
+            float len = glm::length(end - start);
+
+
+
+            bool hitsMirror = mirrorSnapshot[i];
+
+
+            float startCrop = (i > 0) ? 0.05f : (headWidth * 0.4f);
+
+
+            float endCrop = (hitsMirror) ? 0.05f : 0.02f;
+
+
+            float bodyWidth = (std::max)(0.0f, len - startCrop - endCrop);
+
+
+
+            if (i > 0 && mirrorSnapshot[i-1] == (int)MirrorInteraction::Hit) {
+                // 1. Identify the arrival vector (use i and i-1, not lastIdx)
+                glm::vec2 arrivalDir = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i-1]);
+
+                // 2. Determine Flip (1.0 = Right, -1.0 = Left)
+                float flip = (arrivalDir.x > 0.0f) ? -1.0f : 1.0f;
+
+                // 3. Consistent Offset
+                float baseOffset = 0.2f;
+                float totalOffset = baseOffset * flip;
+
+                // 4. Draw
+                glm::mat4 mvp = game->calculateMvpMatrix(
+                    glm::vec3(pointsSnapshot[i].x + totalOffset, pointsSnapshot[i].y, position.z),
+                    0.0f,
+                    glm::vec3(tailWidth * flip, laserThickness * 3.0f, 1.0f)
+                );
+
+                laserTailSprite->draw(*shader, mvp);
+                break;
+            }
+
+            // // NEW: Skip drawing body for segments that are inside a pass-through pipe
+            // if (mirrorSnapshot[i] == (int)MirrorInteraction::PassThrough) {
+            //     continue; // Don't draw this body - it's hidden inside the pipe
+            // }
+            for (size_t j = 0; j < mirrorSnapshot.size(); j++) {
+                std::cout << "mirrorSnapshot[" << j << "] = " << mirrorSnapshot[j] << std::endl;
+            }
+
+
+            // 1. Calculate current segment direction
+
+            glm::vec2 currentDir = glm::normalize(pointsSnapshot[i + 1] - pointsSnapshot[i]);
+
+
+            // 2. Compare to the previous segment's direction (if we are past the first segment)
+
+            bool isReturningToSource = false;
+
+            if (i > 0) {
+                glm::vec2 prevDir = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i - 1]);
+
+
+                // If dot product is near -1, it means we are going the exact opposite way
+
+                if (glm::dot(currentDir, prevDir) < -0.9f) {
+                    isReturningToSource = true;
+                }
+            }
+
+
+
+
+
+            if (bodyWidth > 0.0f && !isReturningToSource) {
+                glm::vec2 dir = glm::normalize(end - start);
+
+
+                float angle = std::atan2(dir.y, dir.x) * (180.0f / 3.14159f);
+
+
+                glm::vec2 bodyCenter = start + (dir * (startCrop + (bodyWidth / 2.0f)));
+
+
+                glm::mat4 mvp = game->calculateMvpMatrix(glm::vec3(bodyCenter, position.z), angle,
+
+                                                         glm::vec3(bodyWidth, laserThickness, 1.0f));
+
+
+                laserBodySprite->draw(*shader, mvp);
+
+                debugBodyDrawCount++;
+            }
+        }
+
+
+        bool headDrawn = false; // Track if we've placed the origin head
+        std::vector<bool> cornerDrawn(pointsSnapshot.size(), false);
+
+
+        bool tailDrawn = false; // Add this before your loop starts
+        // --- PASS 2: DRAW CAPS (Origin, Junctions, Terminals) ---
+
+        glm::vec2 lastCornerPos = glm::vec2(-999.0f, -999.0f);
+
+        for (size_t i = 0; i < pointsSnapshot.size() - 1; ++i) {
+            glm::vec2 start = pointsSnapshot[i];
+
+
+            glm::vec2 end = pointsSnapshot[i + 1];
+
+
+            glm::vec2 dir = glm::normalize(end - start);
+
+
+
+            // if (i == 0 || i > mirrorSnapshot.size()) continue;
+            if (i == 0) {
+                // float fDir = (dir.x > 0.0f) ? -1.0f : 1.0f;
+
+
+                //glm::vec2 incomingDir = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i-1]); // segment 0 direction
+                //
+                //
+                // std::cout << "what the heel is dir.x " << dir.x << std::endl;
+
+
+                float fDir = (dir.x > 0.0f) ? -1.0f : 1.0f;
+
+
+                // 1. Calculate the scale as a vector
+
+
+                glm::vec3 currentScale = glm::vec3(headWidth * fDir, laserThickness - 0.09f, 1.0f);
+
+
+                // 2. Pass this scale directly into your MVP calculation (do not call setScale)
+
+
+                glm::mat4 mvp = game->calculateMvpMatrix(
+
+
+                    glm::vec3(start + (dir * (headWidth * 0.35f)), position.z),
+
+
+                    0.0f,
+
+
+                    currentScale // Pass the scale here
+
+
+                );
+
+
+                laserHeadSprite->draw(*shader, mvp);
+
+
+                headDrawn = true;
+
+                //
+                //
+                // std::cout << "HEAD dir.x=" << dir.x << " fDir=" << fDir << std::endl;
+                continue;
+
+            }
+            int interaction = mirrorSnapshot[i - 1];
+
+
+
+            float angle = std::atan2(dir.y, dir.x) * (180.0f / 3.14159f);
+
+
+            // std::cout << "Drawing corner for segment " << i << std::endl;
+
+            //
+            // std::cout << "segment " << i << std::endl;
+            //
+
+            // 1. DRAW ORIGIN HEAD (i == 0)
+
+
+
+
+
+            // 2. DRAW JUNCTION
+
+
+            // To this:
+
+
+            //if (i == 0 || i >= mirrorSnapshot.size()) continue;
+
+            //
+            // std::cout << " i ist right now: " << i << std::endl;
+
+
+            if (i < mirrorSnapshot.size() && mirrorSnapshot[i-1] != (int)MirrorInteraction::None) {
+
+                // bool isReturning = (pointsSnapshot.size() > 2) && (i == 1) &&
+
+                //
+
+                // (glm::distance(pointsSnapshot[2], pointsSnapshot[0]) < 0.2f);
+
+
+                glm::vec2 incomingDir = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i - 1]);
+
+
+
+                float fDir = (incomingDir.x > 0.0f) ? 1.0f : -1.0f;
+                // 1. Define a tolerance
+                const float ANGLE_TOLERANCE = 5.0f; // 5 degrees of leeway
+                //bool isReturning = (glm::dot(incomingDir, dir) < -0.9f); // Uses the dot product (more robust)
+
+                float segmentAngle = std::atan2(dir.y, dir.x) * (180.0f / 3.14159f);
+                std::cout <<"RAW SEGMENT ANGLE: " << segmentAngle << std::endl;
+                float finalAngle = segmentAngle; // Default
+
+                if (interaction ==(int)MirrorInteraction::Reversal) {
+                    std::cout << "WERE ENTERING THE IF!!" << std::endl;
+                    std::cout << "segmentAngle: " << segmentAngle << std::endl;
+
+                    // Use range checks for stability
+                    if (std::abs(segmentAngle - 180.0f) < ANGLE_TOLERANCE) {
+                        finalAngle = 0.0f; // Override if it's "effectively" 180
+                    }
+                    else if (segmentAngle < -85.0f && segmentAngle > -95.0f) {
+                        std::cout << "SEGMENT ANGLE IS IN THE -90 range!" << std::endl;
+                        finalAngle = 90.0f; // Override
+                    }
+
+                    // DRAW ONLY ONCE
+                    glm::mat4 mvp = game->calculateMvpMatrix(
+                        glm::vec3(start + (dir * (headWidth * 0.35f)), position.z),
+                        finalAngle,
+                        glm::vec3(headWidth * fDir, laserThickness - 0.09f, 1.0f)
+                    );
+                    laserHeadSprite->draw(*shader, mvp);
+                }
+
+                    std::cout << "FOR SOME REASON WERE DRAWING A HEAD RIGHT NOW!" << std::endl;
+                    std::cout << "PREVIOUS SEGMENT WAS A: " << mirrorSnapshot[i - 1] << std::endl;
+                    std::cout << "CURRENT SEGMENT IS A: " << mirrorSnapshot[i] << std::endl;
+
+
+
+
+
+
+
+
+
+
+
+                    // std::cout << "ORIGIN HEAD: dir.x=" << dir.x << " laser going " << (dir.x > 0 ? "RIGHT" : "LEFT") <<
+                    //
+                    //         std::endl;
+                    //
+                    // std::cout << "DEBUG: Reversal detected at index " << i << ". Skipping tail." << std::endl;
+
+                    // float fDir = (outgoingDir > 0.0f) ? -1.0f : 1.0f;
+
+
+                    // glm::vec2 incomingDir = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i - 1]);
+
+                    // segment 0 direction
+
+                    //
+                    //
+                    // std::cout << "RETURN HEAD: dir.x=" << dir.x << " laser going " << (dir.x > 0 ? "RIGHT" : "LEFT") <<
+                    //
+                    //         std::endl;
+                    //
+                    //
+                    // std::cout << "MVP scale.x = " << (headWidth * fDir) << std::endl;
+                    //continue; //this actually works to prevent two corners from being drawn
+
+                if (interaction == (int)MirrorInteraction::Turn && mirrorSnapshot[i] != (int)MirrorInteraction::Reversal) {
+                    float dotProduct = glm::dot(incomingDir, dir);
+                    // std::cout << "INCOMIG DIR IS " << incomingDir.x << " " << incomingDir.y << std::endl;
+                    // std::cout << "DIR IS " << dir.x << " " << dir.y << std::endl;
+                    // std::cout << "LOOP: Found Turn at index " << i << " at pos: " << pointsSnapshot[i].x << std::endl;
+                    // std::cout << "DOT PRODUCT: " << dotProduct << std::endl;
+
+                    // // 2. Safety Check (Crucial!)
+                    // std::cout << "CORNER DRAWN at i=" << i
+                    //             << " mirrorSnapshot[i]=" << mirrorSnapshot[i]
+                    //             << " mirrorSnapshot[i-1]=" << mirrorSnapshot[i-1]
+                    //             << " isReturning=" << interaction
+                    //             << " incomingDir=(" << incomingDir.x << "," << incomingDir.y << ")"
+                    //             << " dir=(" << dir.x << "," << dir.y << ")"
+                    //             << " dot=" << glm::dot(incomingDir, dir) << std::endl;
+
+                    if (!laserHeadSprite || !laserTailSprite || !laserBodySprite || !laserCornerSprite || !shader)
+
+                        return;
+
+
+                    if (animFrame >= headFrames.size()) return; // Protect frame indexing
+
+
+                    // Get incoming direction (segment before the mirror)
+
+
+                    // glm::vec2 incomingDir = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i - 1]);
+                    if (dotProduct < 0.5f) {
+
+                        float cornerAngle = 0.0f;
+
+
+                        float scaleX = headWidth / 1.5f;
+
+
+                        float scaleY = headWidth / 1.5f;
+
+
+                        // 1. Calculate the sign based on the turn
+                        float pipeRotation = hitCube->getPipeRotation();
+
+
+
+                        bool incomingFromLeft = incoming > 0.0f; // laser traveling right
+
+
+                        bool incomingFromRight = incoming < 0.0f; // laser traveling left
+          //               std::cout << "DEBUG: Incoming=" << incomingDir.x << "," << incomingDir.y
+          // // << " | Outgoing (dir)=" << dir.x << "," << dir.y << std::endl;
+          // //
+          // //               std::cout << "TURN DIR IS " << turnDir.x << "," << turnDir.y << std::endl;
+          // //               std::cout << "DEBUG: Is it Right? " << (dir.x > 0 ? "YES" : "NO")
+          // // << " | X value: " << dir.x << std::endl;
+          // //
+
+                        // 1. Get the rotation into the 0-360 range
+                        float rot = std::fmod(pipeRotation, 360.0f);
+                        if (rot < 0.0f) rot += 360.0f;
+
+                        // 2. Map rotation to an integer index (0, 1, 2, 3)
+                        // 45 degrees is index 0, 135 is index 1, etc.
+                        int rotIndex = (int)(rot / 90.0f) % 4;
+                        std::cout << "DEBUG: Raw=" << pipeRotation
+          << " | Modulo=" << rot
+          << " | Index=" << rotIndex << std::endl;
+
+                        // bool outgoingDown = reflected.y < 0.0f;
+                        //
+                        //
+                        // bool outgoingUp = reflected.y > 0.0f;
+
+
+                        std::cout << "PIPE ROTATION IS : " << pipeRotation << std::endl;
+                        float cornerOffsetX = 0.0f;
+
+
+                        float cornerOffsetY = 0.0f;
+
+                        // 2. Clear Logic Blocks
+                        if (incomingFromRight) { // Laser traveling left (incomingDir.x < 0)
+                            if (rotIndex == 0 || rotIndex == 2) { // Mapping 45°
+                                cornerAngle = 180.0f;
+                                cornerOffsetX = 0.077f; cornerOffsetY = -0.08f;
+                            } else if (rotIndex == 1 || rotIndex == 3) { // Mapping 135°
+                                cornerAngle = 270.0f;
+                                cornerOffsetX = 0.077f; cornerOffsetY = 0.08f;
+                            }
+                            std::cout << "WERE COMING FROM THE RIGHT!!!!" << std::endl;
+                        }
+                        else if (incomingFromLeft) { // Laser traveling right (incomingDir.x > 0)
+                            if (rotIndex == 0 || rotIndex == 2) { // Mapping 45°
+                                cornerAngle = 0.0f;
+                                cornerOffsetX = -0.085f; cornerOffsetY = 0.088f;
+                            } else if (rotIndex == 1 || rotIndex == 3) { // Mapping 135°
+                                cornerAngle = 90.0f;
+                                cornerOffsetX = -0.077f; cornerOffsetY = -0.08f;
+                            }
+                            std::cout << "WERE COMING FROM THE LEFT!!!!" << std::endl;
+                        }
+
+                        // std::cout << "Actually drawing corner sprite at i=" << i << " incomingAngle=" << cornerAngle <<
+                        //
+                        //         " outgoingAngle=" << angle << " cornerAngle=" << cornerAngle << std::endl;
+
+
+                        glm::mat4 mvp = game->calculateMvpMatrix(
+
+
+                            glm::vec3(start.x + cornerOffsetX, start.y + cornerOffsetY, position.z),
+
+
+                            cornerAngle,
+
+
+                            glm::vec3(scaleX, scaleY, 1.0f)
+
+
+                        );
+
+
+                        laserCornerSprite->draw(*shader, mvp);
+                        //continue;
+
+                    }
+                }
+
+
+                // 3. DRAW TERMINAL (Only the very last point)
+            }
+
+            // if (i == pointsSnapshot.size() - 2) {
+            //     // if (mirrorSnapshot[i] != (int)MirrorInteraction::PassThrough) {
+            //         glm::vec2 incomingDirec = glm::normalize(pointsSnapshot[i] - pointsSnapshot[i - 1]);
+            //
+            //         float tailDir = incomingDirec.x > 0.0f ? -1.0f : 1.0f;
+            //
+            //         float OffsetX = 0.0f;
+            //
+            //         if (tailDir == 1.0f) {
+            //             OffsetX += 0.13f;
+            //         } else { OffsetX -= 0.13f; }
+            //
+            //         glm::mat4 mvp = game->calculateMvpMatrix(glm::vec3(end.x + OffsetX, end.y, position.z), 0.0f,
+            //
+            //                                                  glm::vec3(tailWidth * tailDir, laserThickness * 3.0f,
+            //                                                            1.0f));
+            //         //
+            //         laserTailSprite->draw(*shader, mvp);
+            //
+            //         std::cout << "WE ARE DRAWING A TAIL!!!" << std::endl;
+            //         // }
+            //     // }
+            //     // if (interaction == (int)MirrorInteraction::PassThrough) {
+            //
+            // }
+
+        }
+
+
+
+
+        if (debugBodyDrawCount > 1) {
+            std::cout << "[DEBUG] TOTAL BODIES DRAWN: " << debugBodyDrawCount << std::endl;
+        }
     }
-}
+
+
     void LaserGuy::update(Game *game, float deltaTime) {
         Entity::update(game, deltaTime);
 
+        // 2. Then tick the animation based on that path
         // 1. Tick down your master state loop clock
         stateTimer += deltaTime;
 
@@ -114,9 +622,9 @@ namespace gl3 {
                 animFrame = 0;
                 animTimer = 0.0f;
             }
-        }
-        else if (currentState == LaserState::firing) {
+        } else if (currentState == LaserState::firing) {
             castRay(); // Triggers castRay()
+            isRaycastReady = true; // Data is fresh
 
             // 2. HERE IS WHERE THE ANIMATION TICK HAPPENS!
             // This keeps animFrame incrementing frame-by-frame while firing
@@ -127,21 +635,35 @@ namespace gl3 {
                 stateTimer = 0.0f; // Reset timer for the idle phase
             }
         }
-    }
 
+        bool currentlyPassingThrough = false;
+        for (int interaction : segmentEndsOnMirror) {
+            if (interaction == (int)MirrorInteraction::PassThrough) {
+                currentlyPassingThrough = true;
+                break;
+            }
+        }
+
+        // Dynamic Swap
+        if (currentlyPassingThrough) {
+            this->setZOrder(0); // Set lower than the Pipe's Z-order (e.g., 1)
+        } else {
+            this->setZOrder(2); // Set higher than the Pipe's Z-order
+        }
+    }
 
 
     void LaserGuy::createPhysicsBody() {
         b2BodyDef bodyDef = b2DefaultBodyDef();
         bodyDef.enableSleep = false; // Prevent body from sleeping
-        bodyDef.type = b2_staticBody;
+        bodyDef.type = b2_kinematicBody;
         bodyDef.position = {position.x, position.y};
         bodyDef.userData = this;
         body = b2CreateBody(physicsWorld, &bodyDef);
 
         // 1. Define dimensions
-        HalfWidth = scale.x / 2.0f;
-        HalfHeight = scale.y / 2.0f;
+        HalfWidth = abs(scale.x / 2.0f);
+        HalfHeight = abs(scale.y / 2.0f);
 
         // 2. Create a standard box instead of a complex hull
         b2Polygon box = b2MakeBox(HalfWidth, HalfHeight);
@@ -157,36 +679,135 @@ namespace gl3 {
     }
 
     void LaserGuy::castRay() {
-        b2Vec2 guyPos = b2Body_GetPosition(body);
+    b2Vec2 guyPos = b2Body_GetPosition(body);
+    float spriteDir = sprite->getScale().x > 0.0f ? 1.0f : -1.0f;
 
-        // 1. Determine which way he is facing
-        float spriteDir = sprite->getScale().x > 0.0f ? 1.0f : -1.0f;
+    glm::vec2 currentOrigin = glm::vec2(guyPos.x + (spriteDir * eyeOffsetX), guyPos.y + eyeOffsetY);
+    glm::vec2 currentDir = glm::vec2(spriteDir, 0.0f); // this is JUST FOR THE INITIAL DIRECTION COMING FROM LASERGUY
 
-        // 2. Shift the ray origin dynamically based on direction!
-        b2Vec2 origin = {
-            guyPos.x + (spriteDir * eyeOffsetX), // Moves left or right depending on face direction
-            guyPos.y + eyeOffsetY              // Moves up to eye level
-        };
+    hitEntities.clear();
+    laserPoints.clear();
+    segmentEndsOnMirror.clear();
+    laserPoints.push_back(currentOrigin);
 
-        // 3. Project outward from the new eye position
-        b2Vec2 end = {origin.x + (spriteDir * 10.0f), origin.y};
-
-        uint64_t category = gl3::PhysicsCategories::CATEGORY_RAY_SENSOR;
-        uint64_t mask = gl3::PhysicsCategories::CATEGORY_PLAYER |
-                        gl3::PhysicsCategories::CATEGORY_WALL |
+    uint64_t mask = gl3::PhysicsCategories::CATEGORY_PLAYER |
+                    gl3::PhysicsCategories::CATEGORY_WALL |
                         gl3::PhysicsCategories::CATEGORY_DOOR |
+                    gl3::PhysicsCategories::CATEGORY_MIRROR |
+                    gl3::PhysicsCategories::CATEGORY_MIRROR_PIPE |
+                    gl3::PhysicsCategories::CATEGORY_LASER_EYES |
                         gl3::PhysicsCategories::CATEGORY_BOX;
 
-        RayCastResult result = PhysicsUtils::CastRay(physicsWorld, origin, end, mask, category);
-        if (result.didHit) {
-            currentHitPoint = glm::vec2(result.hitPoint.x, result.hitPoint.y);
+    for (int bounce = 0; bounce < 10; ++bounce) {
+        glm::vec2 rayEnd = currentOrigin + (currentDir * 10.0f);
+        RayCastResult result = PhysicsUtils::CastRay(physicsWorld,
+                                                     {currentOrigin.x, currentOrigin.y},
+                                                     {rayEnd.x, rayEnd.y},
+                                                     mask,
+                                                     gl3::PhysicsCategories::CATEGORY_RAY_SENSOR);
 
-            // ADD THIS TEMPORARY DEBUG PRINT:
-            b2ShapeId hitShape = result.shapeId; // Assuming your CastRay returns the shape ID
-            void* userData = b2Shape_GetUserData(hitShape);
-            std::cout << "LASER HIT POINT: " << result.hitPoint.x << ", " << result.hitPoint.y << std::endl;
+        // 1. NO HIT: Terminate
+        if (!result.didHit) {
+            laserPoints.push_back(rayEnd);
+            segmentEndsOnMirror.push_back((int)MirrorInteraction::None);
+            break;
         }
+
+        Entity *hitEntity = static_cast<Entity *>(b2Shape_GetUserData(result.shapeId));
+        glm::vec2 hitPoint = glm::vec2(result.hitPoint.x, result.hitPoint.y);
+
+        // 2. SELF-HIT FILTER
+        if (hitEntity == this && bounce == 0) {
+            currentOrigin = currentOrigin + (currentDir * 0.2f);
+            continue;
+        }
+
+        // 3. NUCLEAR OPTION (Distance Debounce)
+        if (!laserPoints.empty() && glm::distance(laserPoints.back(), hitPoint) < 0.05f) {
+            currentOrigin = hitPoint + (currentDir * 0.1f);
+            continue;
+        }
+
+        // 4. MIRROR REFLECTION / PASS-THROUGH
+        if (hitEntity && (hitEntity->getType() == EntityType::Mirror || hitEntity->getType() == EntityType::MirrorCube)) {
+            // ALWAYS update hitCube if it's a MirrorCube
+            if (hitEntity->getType() == EntityType::MirrorCube) {
+                hitCube = dynamic_cast<MirrorCube*>(hitEntity);
+            } else {
+                hitCube = nullptr; // Reset if we hit a standard Mirror
+            }
+            if (hitEntity->getType() == EntityType::MirrorCube && isParallelToPipe(currentDir, (MirrorCube*)hitEntity)) {
+                std::cout << "PASSTHROUGH HIT on entity at: " << hitEntity->getPosition().x << "," << hitEntity->getPosition().y << std::endl;
+
+                currentOrigin = hitPoint + (glm::normalize(currentDir) * 0.5f);
+                laserPoints.push_back(hitPoint);
+                segmentEndsOnMirror.push_back((int)MirrorInteraction::PassThrough);
+            }
+            else {
+                glm::vec2 normal = glm::vec2(result.normal.x, result.normal.y);
+
+                // 1. Capture the direction BEFORE reflection for the dot product
+                glm::vec2 oldDir = currentDir;
+
+                // 2. Calculate the new direction
+                glm::vec2 reflectionVector = glm::reflect(oldDir, normal);
+
+                // 3. Determine Interaction (Use old vs new)
+                float dotProduct = glm::dot(glm::normalize(oldDir), glm::normalize(reflectionVector));
+
+                if (dotProduct < -0.8f) {
+                    segmentEndsOnMirror.push_back((int)MirrorInteraction::Reversal);
+                    std::cout << "REFLECTION VECTOR: "  << reflectionVector.x << "," << reflectionVector.y << std::endl;
+                }
+                else if (std::abs(dotProduct) < 0.5f) {
+                    segmentEndsOnMirror.push_back((int)MirrorInteraction::Turn);
+                    std::cout << "REFLECTION VECTOR: "  << reflectionVector.x << "," << reflectionVector.y << std::endl;
+                    incoming = spriteDir;
+                    std::cout << "OLDDIR IS: " << incoming << std::endl;
+                    reflected = reflectionVector;
+                    std::cout << "NEW DIR IS: " << reflected.x << "," << reflected.y << std::endl;
+
+                }
+                else {
+                    segmentEndsOnMirror.push_back((int)MirrorInteraction::None);
+                }
+
+                currentDir = reflectionVector;
+                currentOrigin = hitPoint + (currentDir * 0.05f);
+                laserPoints.push_back(hitPoint);
+
+            }
+        }
+        // 5. WALL HIT
+        else {
+            if (hitEntity->getType() == EntityType::LaserGuy) { // I THINK THIS IS OKAY BUT MAYBE DOUBLE CHECK LATER
+                segmentEndsOnMirror.push_back((int)MirrorInteraction::None);
+                laserPoints.push_back(hitPoint);
+                break;
+            }
+            else {
+                laserPoints.push_back(hitPoint);
+                segmentEndsOnMirror.push_back((int)MirrorInteraction::Hit);
+            }
+
+
+
+        }
+
+        std::cout << "Normal: " << result.normal.x << "," << result.normal.y << std::endl;
     }
+}
+
+    bool LaserGuy::isParallelToPipe(glm::vec2 laserDir, MirrorCube *pipe) {
+        // This now compares the vector magnitude correctly on both axes
+        float pipeAngle = glm::radians(pipe->getPipeRotation());
+        glm::vec2 pipeDir = {std::cos(pipeAngle), std::sin(pipeAngle)};
+
+        // The dot product naturally handles both X and Y components simultaneously
+        float dot = std::abs(glm::dot(glm::normalize(laserDir), pipeDir));
+        return (dot > 0.95f);
+    }
+
     void LaserGuy::updateAnimation(float deltaTime) {
         animTimer += deltaTime;
 
@@ -198,6 +819,17 @@ namespace gl3 {
         }
     }
 
+    MirrorCube *LaserGuy::getCubeAtSegment(int i) {
+        // Safety check: is the index valid?
+        if (i < 0 || i >= hitEntities.size()) return nullptr;
 
+        Entity *e = hitEntities[i];
 
+        // Check if the entity exists and is a MirrorCube
+        if (e && e->getType() == EntityType::MirrorCube) {
+            return static_cast<MirrorCube *>(e);
+        }
+
+        return nullptr;
+    }
 }

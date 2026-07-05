@@ -44,7 +44,7 @@ namespace gl3 {
         // Make the sensor height exactly the same as the ladder.
         // If the floor is 0.1 thick and sits exactly at the ladder's top,
         // the player's feet will still be "touching" the top edge of the sensor.
-        b2Polygon sensorBox = b2MakeBox(scale.x/2.0f, scale.y/2.0f);
+        b2Polygon sensorBox = b2MakeBox(scale.x/2.0f, scale.y* 5.0f);
 
         b2ShapeDef shapeDef = b2DefaultShapeDef();
         shapeDef.isSensor = true;
@@ -67,9 +67,11 @@ namespace gl3 {
             }
             else if (other->getType() == EntityType::Dog) {
                 Dog* dog = dynamic_cast<Dog*>(other);
-                if (!this->isExit) {
+                if (!(this->isExit)) {
                     dog->setExitVent(this->getConnectedTwin());
                     dog->setEntryVent(this);
+                    std::cout << "ENTRY VENT"   << dog->getEntryVent() << std::endl;
+                    std::cout << "EXIT VENT"   << dog->getExitVent() << std::endl;
                 }
 
             }

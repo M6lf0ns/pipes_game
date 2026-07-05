@@ -15,7 +15,7 @@ namespace gl3{
                glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
                glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f),
                b2WorldId physicsWorld = b2_nullWorldId,
-               EntityType type = EntityType::None);
+               EntityType type = EntityType::None, float initialRotation = 0.0f);
 
         virtual ~Entity();
 
@@ -27,7 +27,14 @@ namespace gl3{
         //[[nodiscard]] float getZRotation() const { return zRotation; }
         [[nodiscard]] const glm::vec3 &getScale() const { return scale; }
         virtual void setPosition(const glm::vec3 &position);
-        void setZRotation(float zRotation) { Entity::zRotation = zRotation; }
+        void setZRotation(float newRotation) {
+            this->zRotation = newRotation;
+
+            // Push the change to the Sprite immediately
+            if (this->sprite != nullptr) {
+                this->sprite->setRotation(newRotation);
+            }
+        }
         void setScale(const glm::vec3 &scale) { Entity::scale = scale; }
         void setZOrder(int order) { zOrder = order; }
         virtual b2BodyId getBody() const;

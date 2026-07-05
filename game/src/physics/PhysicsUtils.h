@@ -13,6 +13,7 @@ namespace gl3 {
         float distanceAlongRay = 1.0f;  // 1.0 = no hit
         Entity* hitEntity = nullptr;
         bool didHit = false;            // Helpful flag for quick if-checks
+        b2Vec2 endPoint = {0.0f, 0.0f}; // <-- Add this to carry the fallback direction data!
     };
 
     class PhysicsUtils {

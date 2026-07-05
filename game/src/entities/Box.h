@@ -4,6 +4,7 @@
 #include "../Sprite.h"
 #include "box2d/types.h"
 
+class Ship;
 namespace gl3 {
 
 
@@ -13,13 +14,13 @@ namespace gl3 {
         void draw(Game *game) override;
         void startContact(Entity* other) override;
         void update(Game *game, float deltaTime) override;
-        void endContact();
+        void endContact(Entity* other) override;
         [[nodiscard]] float GetHalfHeight() const;
         [[nodiscard]] float GetHalfWidth() const;
         //void DebugDraw();
-        [[nodiscard]] EntityType getType() const override {
-            return EntityType::Box;
-        }
+        // [[nodiscard]] EntityType getType() const override {
+        //     return EntityType::Box;
+        // }
 
 
 
@@ -29,12 +30,14 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        float playerToBoxX;
         Ship* activePlayer = nullptr; // Store the actual player touching the box
         float halfWidth = 0.0f, halfHeight = 0.0f;
         bool isMovable = false;
         int playerContactCount = 0;
         float stillTime = 0.0f;              // how long the box has been still
         const float stillThreshold = 0.2f;   // time required before freezing again
+
 
 
 

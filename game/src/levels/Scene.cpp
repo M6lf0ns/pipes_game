@@ -30,7 +30,9 @@ namespace gl3 {
         std::map<int, Switch *> switchMap;
         std::map<int, Door *> doorMap;
         std::map<int, Speaker *> speakerMap;
+        std::map<int, MirrorCube *> mirrorCubeMap;
         std::map<int, SpeakerSwitch *> speakerSwitchMap;
+        std::map<int, PipeSwitch *> pipeSwitchMap;
 
         std::string line;
         while (std::getline(file, line)) {
@@ -38,15 +40,17 @@ namespace gl3 {
 
             std::stringstream ss(line);
             std::string type;
-            float x, y, sx, sy;
+            float x, y, sx, sy, rotation;
             int linkID;
             bool isGround;
             bool is_Exit;
             int floorID;
 
-            if (ss >> type >> x >> y >> sx >> sy >> linkID >> isGround >> is_Exit >> floorID) {
+
+            if (ss >> type >> x >> y >> sx >> sy >> rotation >> linkID >> isGround >> is_Exit >> floorID) {
                 glm::vec3 pos(x, y, 0.0f);
                 glm::vec3 scale(sx, sy, 1.0f);
+
 
                 if (type == "Ship") {
                     entities.push_back(std::make_unique<Ship>(spriteShader.get(), pos, scale, floorID, world));
@@ -68,11 +72,25 @@ namespace gl3 {
                     if (linkID != 0) switchMap[linkID] = sw.get();
                     entities.push_back(std::move(sw));
                 } else if (type == "SecBot") {
-                    entities.push_back(std::make_unique<SecBot>(spriteShader.get(), pos, scale,floorID, world));
+                    entities.push_back(std::make_unique<SecBot>(spriteShader.get(), pos, scale,rotation, floorID, world));
                 }else if (type=="LaserGuy") {
-                    entities.push_back(std::make_unique<LaserGuy>(spriteShader.get(), pos, scale, world));
+                    entities.push_back(std::make_unique<LaserGuy>(spriteShader.get(), pos, scale, world, rotation));
                 }
-                    else if (type == "Dog") {
+                else if (type == "Mirror") {
+                    entities.push_back(std::make_unique<Mirror>(spriteShader.get(), pos, scale, rotation, world));
+                }
+                else if (type == "MirrorCube") {
+                    std::cout << "DEBUG: Loading MirrorCube with rotation: " << rotation << std::endl;
+                    auto cube = std::make_unique<MirrorCube>(spriteShader.get(), pos, scale, rotation, world);
+                    if (linkID != 0) mirrorCubeMap[linkID] = cube.get(); // You are doing this!
+                    entities.push_back(std::move(cube));
+                }
+                else if (type == "PipeSwitch") {
+                    auto pipeSwitch = std::make_unique<PipeSwitch>(spriteShader.get(), pos, scale, world);
+                    if (linkID != 0) pipeSwitchMap[linkID] = pipeSwitch.get(); // <--- YOU ARE MISSING THIS!
+                    entities.push_back(std::move(pipeSwitch));
+                }
+                else if (type == "Dog") {
                     entities.push_back(std::make_unique<Dog>(spriteShader.get(), pos, scale, world));
                 } else if (type == "Stick") {
                     entities.push_back(std::make_unique<Stick>(spriteShader.get(), pos, scale, world));
@@ -98,6 +116,9 @@ namespace gl3 {
                     }
 
 
+                }
+                else if (type == "GoalSensor") {
+                    entities.push_back(std::make_unique<GoalSensor>(spriteShader.get(), pos, scale, world));
                 }
             }
         }
@@ -134,6 +155,15 @@ namespace gl3 {
             if (speakerMap.find(id) != speakerMap.end()) {
                 std::cout << "[DEBUG] Linking SpeakerSwitch " << id << " to Speaker... ";
                 swPtr->setTargetSpeaker(speakerMap[id]); // Use Speaker pointer, not Door
+                std::cout << "OK" << std::endl;
+            }
+        }
+
+        // --- LINKING SPEAKER SWITCHES AND SPEAKERS ---
+        for (auto const &[id, swPtr]: pipeSwitchMap) {
+            if (mirrorCubeMap.find(id) != mirrorCubeMap.end()) {
+                std::cout << "[DEBUG] Linking SpeakerSwitch " << id << " to Speaker... ";
+                swPtr->setTargetCube(mirrorCubeMap[id]); // Use Speaker pointer, not Door
                 std::cout << "OK" << std::endl;
             }
         }

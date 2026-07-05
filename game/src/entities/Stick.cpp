@@ -41,6 +41,8 @@ namespace gl3 {
 
     void Stick::update(Game *game, float deltaTime) {
 
+        // std::cout << "IS DAWG BEING SET??" << dawg << std::endl;
+
         if (isFollowingPlayer) {
             b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
             b2Body_SetAngularVelocity(body, 0.0f);
@@ -81,8 +83,11 @@ namespace gl3 {
             // 6. CRITICAL: Turn off the flag so this block stops running!
             hasBeenThrown = false;
             hasLanded = true;
+            if (dawg != nullptr) {
             dawg->setStickHasLanded(hasLanded);
             dawg->setTargetLocation(position.x);
+            }
+
 
             //std::cout << "STICK LANDED AND SNAPPED" << std::endl;
         }
@@ -132,6 +137,7 @@ namespace gl3 {
         b2Shape_SetRestitution(shape, 0.1f);
         b2Shape_SetDensity(shape, 5.0f, true);
         b2Shape_EnableContactEvents(shape, true);
+        b2Shape_EnableSensorEvents(shape, true);
         // Inside Stick::createPhysicsBody
 
 
@@ -178,6 +184,7 @@ namespace gl3 {
     }
 
     void Stick::throwStick(Game *game, glm::vec3 pos, float direction) {
+
         isFollowingPlayer = false; // Stop tracking player coordinates
         hasLanded = false;
         isVisible = true;          // Make it reappear flying
@@ -237,6 +244,7 @@ namespace gl3 {
 
     void Stick::startContact(Entity* other) {
 
+
     }
 
     void Stick::endContact(Entity* other) {
@@ -279,7 +287,10 @@ namespace gl3 {
             b2Body_SetAngularVelocity(body, 0.0f);
             b2Body_SetAwake(body, true);
             this->setPosition(pos);
-            dawg->setTargetLocation(pos.x);
+            if (dawg != nullptr) {
+                dawg->setTargetLocation(pos.x);
+            }
+
         }
     }
 

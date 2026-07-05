@@ -57,6 +57,14 @@ set(SOURCE_FILES src/main.cpp
         src/entities/LaserGuy.h
         src/physics/PhysicsUtils.h
         src/physics/PhysicsUtils.cpp
+        src/entities/Mirror.cpp
+        src/entities/Mirror.h
+        src/entities/MirrorCube.cpp
+        src/entities/MirrorCube.h
+        src/entities/PipeSwitch.cpp
+        src/entities/PipeSwitch.h
+        src/entities/GoalSensor.cpp
+        src/entities/GoalSensor.h
 
 )
 
