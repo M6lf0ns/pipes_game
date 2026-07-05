@@ -16,8 +16,12 @@ namespace gl3 {
         Ladder,
         Speaker,
         SpeakerSwitch,
+        PipeSwitch,
         Vent,
-        LaserGuy
+        LaserGuy,
+        Mirror,
+        MirrorCube,
+        GoalSensor
     };
 
 }

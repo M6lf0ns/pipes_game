@@ -12,4 +12,9 @@
 #include "Speaker.h"
 #include "Vent.h"
 #include "Wall.h"
+#include "Mirror.h"
+#include "MirrorCube.h"
+#include "PipeSwitch.h"
+#include "LaserGuy.h"
+#include "GoalSensor.h"
 

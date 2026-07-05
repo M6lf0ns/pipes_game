@@ -31,7 +31,7 @@ namespace gl3 {
             // The Wall needs to collide with everything physical
             wallShapeDef.filter.categoryBits = gl3::PhysicsCategories::CATEGORY_WALL;
             wallShapeDef.filter.maskBits = gl3::PhysicsCategories::MASK_ALL_PHYSICAL |
-                gl3::PhysicsCategories::CATEGORY_RAY_SENSOR;
+                gl3::PhysicsCategories::CATEGORY_RAY_SENSOR | gl3::PhysicsCategories::CATEGORY_SEC_BOT;
 
             wallShapeDef.enableContactEvents = true;
             shape = b2CreatePolygonShape(body, &wallShapeDef, &boxGeometry);

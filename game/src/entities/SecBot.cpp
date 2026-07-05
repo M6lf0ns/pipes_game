@@ -11,23 +11,42 @@
 
 
 namespace gl3 {
-
-    SecBot::SecBot(Shader* shader, glm::vec3 position, glm::vec3 scale, int id, b2WorldId physicsWorld) : Entity (
+    SecBot::SecBot(Shader* shader, glm::vec3 position, glm::vec3 scale,float rotation, int id, b2WorldId physicsWorld) : Entity (
         shader,
         position,
         scale,
         physicsWorld,
         EntityType::SecBot)
-    ,  floorID(id)
+    ,  floorID(id), rotationAng(rotation)
 
     {
-        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/test_secBot.png"));
+        this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/secBot.png"));
         this->setZOrder(3);
         SecBot::createPhysicsBody();
         this->currentState = Botstate::patrol; // Force initial state
         this->isTurning = false;
         this->lastKnownX = 0.0f;
         std::cout << "[DEBUG] SecBot created at address: " << this << std::endl;
+
+        this->patrolFrames.push_back(Texture::LoadTexture("assets/textures/bot_patrol_1.png"));
+        this->patrolFrames.push_back(Texture::LoadTexture("assets/textures/bot_patrol_2.png"));
+        this->patrolFrames.push_back(Texture::LoadTexture("assets/textures/bot_patrol_3.png"));
+        this->patrolFrames.push_back(Texture::LoadTexture("assets/textures/bot_patrol_4.png"));
+        this->patrolFrames.push_back(Texture::LoadTexture("assets/textures/bot_patrol_5.png"));
+
+        this->chaseFrames.push_back(Texture::LoadTexture("assets/textures/bot_chase_1.png"));
+        this->chaseFrames.push_back(Texture::LoadTexture("assets/textures/bot_chase_2.png"));
+        this->chaseFrames.push_back(Texture::LoadTexture("assets/textures/bot_chase_3.png"));
+        this->chaseFrames.push_back(Texture::LoadTexture("assets/textures/bot_chase_4.png"));
+        this->chaseFrames.push_back(Texture::LoadTexture("assets/textures/bot_chase_5.png"));
+
+        this->searchFrames.push_back(Texture::LoadTexture("assets/textures/bot_search_1.png"));
+        this->searchFrames.push_back(Texture::LoadTexture("assets/textures/bot_search_2.png"));
+        this->searchFrames.push_back(Texture::LoadTexture("assets/textures/bot_search_3.png"));
+        this->searchFrames.push_back(Texture::LoadTexture("assets/textures/bot_search_4.png"));
+        this->searchFrames.push_back(Texture::LoadTexture("assets/textures/bot_search_5.png"));
+
+
 
     }
 
@@ -37,6 +56,31 @@ namespace gl3 {
             std::cout << "SECBOT CANT FIND SHIP" << std::endl;
             return;
         }
+        animTimer += deltaTime;
+        if (animTimer >= 0.03f) { // Your frame speed
+            animTimer = 0.0f;
+            if (currentState == Botstate::patrol) {
+                animFrame = (animFrame + 1) % patrolFrames.size();
+                this->sprite->setTexture(patrolFrames[animFrame]);
+
+            }
+            else if (currentState == Botstate::chase) {
+                animFrame = (animFrame + 1) % chaseFrames.size();
+                this->sprite->setTexture(chaseFrames[animFrame]);
+
+            } else if (currentState == Botstate::search) {
+                animFrame = (animFrame + 1) % searchFrames.size();
+                this->sprite->setTexture(searchFrames[animFrame]);
+            }
+
+
+            // HERE is the assignment!
+
+        }
+
+        Entity::update(game, deltaTime);
+
+
         if (currentState == Botstate::patrol && isTurning) {
             timeRemainingBeforeTurn -= deltaTime;
             b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
@@ -61,10 +105,10 @@ namespace gl3 {
             }
 
         }
-        std::cout << "[DEBUG] Current State: " << (int)currentState
-                  << " | Spotted: " << playerSpotted
-        << " | View Blocked: " << isViewBlocked
-                  << " | CanReach: " << canReachPlayer() << std::endl;
+        // std::cout << "[DEBUG] Current State: " << (int)currentState
+        //           << " | Spotted: " << playerSpotted
+        // << " | View Blocked: " << isViewBlocked
+        //           << " | CanReach: " << canReachPlayer() << std::endl;
 
         // --- MOVEMENT LOGIC ---
         if (currentState == Botstate::chase) {
@@ -116,7 +160,7 @@ namespace gl3 {
 
         // 3. Define the Shape Geometry
         // *** Safer Initialization using struct assignment (C++11/14) ***
-        circleGeometry = { {0.0f, 0.0f}, botRadius };
+        circleGeometry = { {0.0f, -0.1f}, botRadius };
         // This explicitly initializes center to {0,0} and radius.
 
         // 4. Define the Shape Properties
@@ -154,12 +198,14 @@ namespace gl3 {
         b2MotionLocks locks = {0};
         locks.angularZ = true; // This is the internal bitfield
         b2Body_SetMotionLocks(body, locks);
+        // b2Body_SetGravityScale(body, 0.0f); // Disable gravity
 
         // After creating body
         b2Vec2 vel = b2Body_GetLinearVelocity(body);
         //std::cout << "Initial bot velocity: " << vel.x << ", " << vel.y << std::endl;
         b2Shape_EnableSensorEvents(shape, true);
         b2Shape_EnableContactEvents(shape, true);
+        b2Shape_SetUserData(shape, this);
 
     }
 
@@ -207,6 +253,9 @@ namespace gl3 {
                 isViewBlocked = false;
                 std::cout << "PLAYER SPOTTED" << std::endl;
             } else {
+                if (result.hitEntity->getType() == EntityType::Wall) {
+                    std::cout << "WALL SPOTTED" << std::endl;
+                }
                 playerSpotted = false;
                 isViewBlocked = true;
             }

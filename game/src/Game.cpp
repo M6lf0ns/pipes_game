@@ -218,17 +218,61 @@ namespace gl3 {
             }
             return;
         }
+        // In Game::update()
+        if (goalReached) {
+            if (!isWaitingToSwitch) {
+                isWaitingToSwitch = true;
+                delayTimer = 2.0f; // 2 second delay
+            }
 
-        // --- F1 LEVEL SWITCHING / GAMEPLAY LOGIC ---
-        bool oneIsPressed = glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS;
-        if (oneIsPressed && !oneWasPressed) {
-            int targetLevel = idToLoad + 1;
-            std::cout << "[GAME] Level switch triggered! Moving to Level: " << targetLevel << std::endl;
-            this->requestSceneSwitch(targetLevel);
-            oneWasPressed = true;
+            delayTimer -= deltaTime;
+
+            if (delayTimer <= 0.0f) {
+                // ONLY NOW do we set the ID and trigger the switch
+                int nextLevel = idToLoad + 1;
+                requestSceneSwitch(nextLevel);
+
+                // Reset flags
+                isWaitingToSwitch = false;
+                goalReached = false;
+            }
         }
-        else if (!oneIsPressed) {
-            oneWasPressed = false;
+
+
+
+
+        // 1. Enter/Exit Input Mode
+        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && !inputMode) {
+            inputMode = true;
+            levelInputBuffer = "";
+            std::cout << "[DEBUG] Input Level ID (then press ENTER): " << std::flush;
+        }
+
+        if (inputMode) {
+            // 2. Listen for keys 0-9 with a LATCH
+            for (int i = 0; i <= 9; ++i) {
+                int key = GLFW_KEY_0 + i;
+                if (glfwGetKey(window, key) == GLFW_PRESS) {
+                    if (!numKeysWasPressed[i]) {
+                        levelInputBuffer += std::to_string(i);
+                        std::cout << i << std::flush;
+                        numKeysWasPressed[i] = true; // Set Latch
+                    }
+                } else {
+                    numKeysWasPressed[i] = false; // Release Latch
+                }
+            }
+
+            // 3. Confirm with ENTER
+            if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+                if (!levelInputBuffer.empty()) {
+                    int targetLevel = std::stoi(levelInputBuffer);
+                    std::cout << "\n[GAME] Switching to Level: " << targetLevel << std::endl;
+                    this->switchScene(targetLevel);
+                }
+                inputMode = false;
+                levelInputBuffer = "";
+            }
         }
     }
     void Game::ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB) {
@@ -293,12 +337,13 @@ namespace gl3 {
 
         if (menuSprite == nullptr) {
             std::cout << "[DEBUG] Loading Main Menu Texture..." << std::endl;
-            GLuint menuTexID = Texture::LoadTexture("assets/textures/mainMenu_screen.png");
+            GLuint menuTexID = Texture::LoadTexture("assets/textures/start_menu.png");
             menuSprite = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), menuTexID);
         }
 
         glm::vec3 menuPosition = glm::vec3(0.0f, 1.0f, 0.0f);
-        glm::vec3 menuScale = glm::vec3(-8.0f, 4.0f, 1.0f);
+        // Change -8.0f to 8.0f
+        glm::vec3 menuScale = glm::vec3(8.0f, 4.0f, 1.0f);
 
         menuSprite->setPosition(menuPosition);
         menuSprite->setScale(menuScale);
@@ -308,6 +353,7 @@ namespace gl3 {
         spriteShader->setBool("useTexture", true);
         spriteShader->setInt("spriteTexture", 0);
 
+        // Add 180 degrees to the rotation to flip the orientation without mirroring the matrix
         glm::mat4 menuMvp = calculateMvpMatrix(menuPosition, 0.0f, menuScale);
         menuSprite->draw(*spriteShader, menuMvp);
 
@@ -334,7 +380,7 @@ namespace gl3 {
 
         float cameraX = (ship != nullptr) ? ship->getPosition().x : 0.0f;
         glm::vec3 dynamicUIPos = glm::vec3(cameraX, 1.0f, 0.0f);
-        glm::vec3 uiScale = glm::vec3(-8.0f, 4.0f, 1.0f);
+        glm::vec3 uiScale = glm::vec3(8.0f, 4.0f, 1.0f);
 
         // --- 3. DRAW THE TRANSPARENT BLACK BACKDROP (PURE COLOR, NO IMAGE) ---
         spriteShader->setBool("useTexture", false);
@@ -358,11 +404,11 @@ namespace gl3 {
         static gl3::Sprite* pauseTextSprite = nullptr;
         if (pauseTextSprite == nullptr) {
             std::cout << "[DEBUG] Loading Pause Text Texture File..." << std::endl;
-            GLuint textTexID = Texture::LoadTexture("assets/textures/pauseScreen_text.png");
+            GLuint textTexID = Texture::LoadTexture("assets/textures/pause_menu.png");
             pauseTextSprite = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), textTexID);
         }
 
-        glm::vec3 textScale = glm::vec3(-7.0f, 4.0f, 1.0f);
+        glm::vec3 textScale = glm::vec3(7.0f, 4.0f, 1.0f);
         pauseTextSprite->setPosition(dynamicUIPos);
         pauseTextSprite->setScale(textScale);
         pauseTextSprite->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -405,6 +451,8 @@ namespace gl3 {
     }
 
     void Game::switchScene(int ID) {
+        std::cout << "[DEBUG] SWITCHING SCENE TO: " << ID << std::endl;
+        goalReached = false;
         auto it = levelFileRegistry.find(ID);
         if (it == levelFileRegistry.end()) return;
 

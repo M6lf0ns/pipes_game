@@ -5,7 +5,7 @@
 #include "box2d/types.h"
 #include "Floor.h"
 #include "box2d/src/joint.h"
-#include "Ship.h"
+// #include "Ship.h"
 #include "box2d/src/body.h"
 #include "../Game.h"
 #include "../PhysicsCategories.h"
@@ -97,17 +97,26 @@ namespace gl3 {
     {
         //make sure the player cant pull or push the box if too far away
         if (activePlayer) {
-            float dist = glm::distance(activePlayer->getPosition(), this->getPosition());
+
+            activePlayer->boxPositionX = this->getPosition().x;
+            activePlayer->boxHeight = this->getPosition().y + this->GetHalfHeight();
+
+
+
+            float dist = glm::distance(activePlayer->getPosition().x, this->getPosition().x);
             if (dist > (activePlayer->playerHalfWidth + this->halfWidth + 0.2f)) {
                 playerContactCount = 0; // Force a "drop" if the player is too far
             }
         }
+
+
 
         float actualWidth = GetHalfWidth();
         //std::cout << "BOX WIDTH " << actualWidth << std::endl;
         //std::cout << "Is box touching player? " << playerContactCount << std::endl;
         if (activePlayer && playerContactCount > 0 && activePlayer->push_PullKeyPressed)
         {
+
             float playerHalfWidth = GetHalfWidth();
 
 
@@ -119,7 +128,22 @@ namespace gl3 {
             b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
 
             // Determine if pushing or pulling
-            float playerToBoxX = boxPos.x - playerPosX;
+            playerToBoxX = boxPos.x - playerPosX;
+            activePlayer->setPlayerToBox(playerToBoxX);
+            float playerDir = activePlayer->getDirection();
+            std::cout << "PLAYER DIRECTION: " << playerDir << std::endl;
+            // Check if player is facing the box
+            bool facingBox = (playerDir > 0 && playerToBoxX > 0) || (playerDir < 0 && playerToBoxX < 0);
+            std::cout << "player facing box? " << facingBox << std::endl;
+
+            if (!facingBox) {
+                // Stop interaction:
+                playerContactCount = 0;
+                activePlayer = nullptr;
+                return;
+                // Proceed with your push/pull logic
+            }
+
             float boxHalfWidth = this->halfWidth;    // Assuming box half-width is 0.125f
 
             // Calculate the ideal distance (player body edge to box body edge)
@@ -220,7 +244,19 @@ namespace gl3 {
     void Box::startContact(Entity* other) {
         if (other->getType() == EntityType::Player) {
             this->playerContactCount++;
-            activePlayer = dynamic_cast<Ship*>(other); // Grip the real player
+            activePlayer = dynamic_cast<Ship*>(other);
+
+            // --- FIX: CALCULATE IT RIGHT HERE ---
+            float calculatedDist = this->getPosition().x - activePlayer->getPosition().x;
+
+            activePlayer->boxPositionX = this->getPosition().x;
+            activePlayer->boxHeight = this->getPosition().y + this->GetHalfHeight();
+
+            // Pass the freshly calculated value, NOT a stale member variable
+            activePlayer->setPlayerToBox(calculatedDist);
+
+            activePlayer->isBoxDataValid = true;
+
         }
        // playerContactCount++;
         std::cout << "[Box::startContact] this=" << this
@@ -231,9 +267,21 @@ namespace gl3 {
 
     }
 
-    void Box::endContact() {
-        if (playerContactCount > 0) playerContactCount--;
-        std::cout << "[Box::endContact] this=" << this << std::endl;
+    void Box::endContact(Entity* other) {
+        if (other && other->getType() == EntityType::Player) {
+            if (playerContactCount > 0) playerContactCount--;
+
+            // ONLY clear the reference if the player count is actually 0
+            // (This handles cases where the player might touch the box with two different fixtures)
+            if (playerContactCount == 0) {
+                if (activePlayer) {
+                    activePlayer->isFacingBox = false;
+                    activePlayer->setPlayerToBox(-9999.0f);
+                    activePlayer->isBoxDataValid = false;
+                    activePlayer = nullptr;
+                }
+            }
+        }
     }
     // ← Add this
     // bool Box::isActuallyTouchingPlayer(Ship* player) {

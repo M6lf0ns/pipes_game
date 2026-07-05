@@ -19,6 +19,15 @@ namespace gl3 {
         this->setZOrder(3);
         Dog::createPhysicsBody();
 
+        idleTexture = Texture::LoadTexture("assets/textures/hog_idle.png");
+
+
+        this->walkingFrames.push_back(Texture::LoadTexture("assets/textures/hog_walk_1.png"));
+        this->walkingFrames.push_back(Texture::LoadTexture("assets/textures/hog_walk_2.png"));
+        this->walkingFrames.push_back(Texture::LoadTexture("assets/textures/hog_walk_3.png"));
+        this->walkingFrames.push_back(Texture::LoadTexture("assets/textures/hog_walk_4.png"));
+        this->walkingFrames.push_back(Texture::LoadTexture("assets/textures/hog_walk_5.png"));
+
     }
 
     void Dog::draw(Game *game) {
@@ -30,12 +39,33 @@ namespace gl3 {
 
 
    void Dog::update(Game *game, float deltaTime) {
-    Entity::update(game, deltaTime);
+        if (isWalking) {
+            animTimer += deltaTime;
+            if (animTimer >= 0.05f) { // Your frame speed
+                animTimer = 0.0f;
+                animFrame = (animFrame + 1) % walkingFrames.size();
+
+                // HERE is the assignment!
+                this->sprite->setTexture(walkingFrames[animFrame]);
+                Entity::update(game, deltaTime);
+            }
+        } else {
+            this->sprite->setTexture(idleTexture);
+            Entity::update(game, deltaTime);
+        }
+
 
     if (this->stickHasLanded) {
 
+        if (enVent == nullptr) {
+            std::cout << "ENTRY VENT NOT RECEIVED" << std::endl;
+        }
+        if (exVent == nullptr) {
+            std::cout << "EX VENT NOT RECEIVED" << std::endl;
+        }
         // 1. ALWAYS CHECK TELEPORTATION FIRST
-        if (enVent && exVent) {
+        if (enVent && exVent && enVent->getIsOpen()) {
+            std::cout << "WE ARE REACHING TELEPORTATION CODE" << std::endl;
             float distance = glm::distance(enVent->getPosition().x, this->getPosition().x);
             float maxAllowedDist = 0.01f;
             if (distance <= maxAllowedDist) {
@@ -51,6 +81,7 @@ namespace gl3 {
 
                 this->setEntryVent(nullptr);
                 this->setExitVent(nullptr);
+                isWalking = false;
                 return; // Exit completely so no movement calculations happen!
             }
         }
@@ -61,23 +92,28 @@ namespace gl3 {
         float stopThreshold = 0.05f;
         float direction = (targetLocation > position.x) ? 1.0f : -1.0f;
 
-        std::cout << "DOG POS: " << position.x
-                  << " | TARGET: " << targetLocation
-                  << " | DIST: " << dist
-                  << " | VEL: " << currentVel.x << std::endl;
+        // std::cout << "DOG POS: " << position.x
+        //           << " | TARGET: " << targetLocation
+        //           << " | DIST: " << dist
+        //           << " | VEL: " << currentVel.x << std::endl;
 
         if (dist < stopThreshold) {
             b2Body_SetLinearVelocity(body, b2Vec2_zero);
+            isWalking = false;
+            // this->sprite = idleSprite;
         }
         else {
-            b2Body_SetLinearVelocity(body, {static_cast<float>(0.5f * direction), currentVel.y});
+
+            b2Body_SetLinearVelocity(body, {static_cast<float>(0.6f * direction), currentVel.y});
             if (direction > 0.0f) {
                 sprite->setScale(glm::vec3(abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
             }
             else {
                 sprite->setScale(glm::vec3(-abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
             }
+            isWalking = true;
         }
+
 
         b2Body_SetAwake(body, true);
     }
@@ -86,7 +122,7 @@ namespace gl3 {
     void Dog::createPhysicsBody() {
 
         // 1. Calculate radius locally first to ensure it's valid
-        float radius = scale.x / 3.0f;
+        float radius = scale.x / 3.5f;
         //if (radius <= 0.0f) radius = 0.5f; // Emergency fallback
 
         b2BodyDef bodyDef = b2DefaultBodyDef();

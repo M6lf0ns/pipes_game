@@ -19,11 +19,19 @@ namespace gl3 {
         Vent* getEntryVent() {return enVent;}
         void setEntryVent(Vent* entryVent) {enVent = entryVent;};
         void setExitVent(Vent* exitVent) {exVent = exitVent;};
+        Vent* getExitVent() {return exVent;}
+
 
     protected:
         void createPhysicsBody() override;
 
     private:
+        bool isWalking = false;
+        GLuint idleTexture;
+        int animFrame = 0;          // Which frame index are we currently showing?
+        float animTimer = 0.0f;     // Tracks time passed *within* the current frame
+        const float frameDuration = 0.1f; // How long each frame stays on screen (0.1s = 10 FPS)
+        std::vector<GLuint> walkingFrames;
         float targetLocation = 0.0f;
         static float dogRadius;
         bool stickHasLanded = false;

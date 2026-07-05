@@ -24,11 +24,15 @@ namespace gl3 {
         static const FilterCategory CATEGORY_VENT = 0x0000000000200000ULL;
         static const FilterCategory CATEGORY_RAY_SENSOR = 0x0000000000400000ULL;
         static const FilterCategory CATEGORY_LASER_EYES = 0x0000000008000000ULL;
+        static const FilterCategory CATEGORY_MIRROR = 0x0000000010000000ULL;
+        static const FilterCategory CATEGORY_MIRROR_BACKDROP= 0x0000000020000000ULL;
+        static const FilterCategory CATEGORY_MIRROR_PIPE = 0x0000000040000000ULL;
+        static const FilterCategory CATEGORY_GOAL_SENSOR = 0x0000000080000000ULL;
         // ... all other CATEGORY constants ...
 
         // A convenient mask that includes ALL physical bodies (for general collision checks)
         static const FilterCategory MASK_ALL_PHYSICAL =
-            CATEGORY_PLAYER | CATEGORY_WALL | CATEGORY_BOX | CATEGORY_SEC_BOT | CATEGORY_DOOR | CATEGORY_FLOOR;
+            CATEGORY_PLAYER | CATEGORY_WALL | CATEGORY_BOX | CATEGORY_DOOR | CATEGORY_LASER_EYES;
 
 
     };

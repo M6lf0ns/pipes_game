@@ -43,6 +43,8 @@ namespace gl3 {
         const b2WorldId getPhysicsWorld() const;
         const b2Vec2 getGravity() const;
         int getIdToLoad() { return idToLoad; }
+        void setPendingLevelID(int ID) { pendingLevelID = ID; }
+        int getCurrentLevelID() const { return idToLoad; }
         float getDeltaTime() { return deltaTime; }
         float aspect = 0.0f;
         void setShip(Ship *player) { this->ship = player; }
@@ -52,6 +54,7 @@ namespace gl3 {
         bool isGameOver = false;
         void requestSceneSwitch(int ID);
         void switchScene (int ID);
+        void setGoalReached(bool reachedGoal) {goalReached = reachedGoal;};
 
 
         void ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
@@ -60,6 +63,12 @@ namespace gl3 {
         void SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
 
     private:
+        float delayTimer = 0.0f;
+        bool isWaitingToSwitch = false;
+        bool goalReached = false;
+        std::string levelInputBuffer = "";
+        bool inputMode = false;
+        bool numKeysWasPressed[10] = {false}; // Tracks state for keys 0-9
         bool ESCWasPressed = false;
         int pendingLevelID = -1; // -1 means no switch requested
         static b2WorldDef worldDef;
