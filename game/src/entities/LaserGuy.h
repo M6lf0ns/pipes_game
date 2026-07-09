@@ -25,10 +25,8 @@ namespace gl3 {
         bool isParallelToPipe(glm::vec2 currentDir,MirrorCube* hitCube) ;
         MirrorCube* getCubeAtSegment(int i);
         bool isPassingThrough() { return isPassingthrough; }
-        // Add to LaserGuy class
-        // bool isDying = false;
-        // float deathTimer = 0.0f;
-        // bool isVisible = true;
+        bool getShouldBeRemoved() { return shouldBeRemoved; }
+        bool isConfigReflective (glm::vec2 laserDir, MirrorCube* cube);
 
 
     protected:
@@ -38,7 +36,13 @@ namespace gl3 {
         float HalfWidth;
 
     private:
-
+        std::vector<float> segmentRotations; // Stores the rotation for every Turn
+        std::vector<glm::vec2> segmentDirections;
+        bool isWall = false;
+        bool isDying = false;
+        float deathTimer = 0.0f;
+        bool isVisible = true;
+        bool shouldBeRemoved = false;
         float hitEntityWidth = 0.0f;
         bool rayTerminated = false;
         float incoming = 0.0f;
@@ -77,6 +81,7 @@ namespace gl3 {
         float headWidth = 0.4f;
         float tailWidth = 0.4f;
         MirrorCube* hitCube = nullptr;
+        Ship* hitShip = nullptr;
         bool isPassingthrough = false;
 
         float outgoingDir = 0.0f;

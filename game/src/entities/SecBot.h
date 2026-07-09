@@ -21,7 +21,7 @@ namespace gl3 {
         void startContact(Entity* other) override;
         void setShip(Ship* sship) {ship = sship;}
         int getCurrentFloorId () { return floorID; }
-        void checkForGroundAhead();
+        bool checkForGroundAhead();
         bool canReachPlayer();
         void Freeze() override;
         // void draw(Game *game) override;

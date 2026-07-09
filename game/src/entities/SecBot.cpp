@@ -52,10 +52,11 @@ namespace gl3 {
 
 
     void SecBot::update(Game *game, float deltaTime) {
-        if (game->isGameOver || isFrozen || !ship) {
+        if (game->getIsGameOver() || isFrozen || !ship) {
             std::cout << "SECBOT CANT FIND SHIP" << std::endl;
             return;
         }
+
         animTimer += deltaTime;
         if (animTimer >= 0.03f) { // Your frame speed
             animTimer = 0.0f;
@@ -74,13 +75,17 @@ namespace gl3 {
             }
 
 
-            // HERE is the assignment!
-
         }
 
         Entity::update(game, deltaTime);
 
 
+
+        float dist = glm::distance(ship->getPosition(), this->getPosition());
+        // if (currentState == Botstate::chase && dist < 0.3f) {
+        //     ship->kill(game);
+        //
+        // } COMMENT BACK IN LATER
         if (currentState == Botstate::patrol && isTurning) {
             timeRemainingBeforeTurn -= deltaTime;
             b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
@@ -91,8 +96,7 @@ namespace gl3 {
         castRay();
         checkForGroundAhead();
 
-        // --- STATE TRANSITIONS ---
-        float dist = glm::distance(ship->getPosition(), this->position);
+
 
         // Only chase if on the same floor AND spotted
         if (((playerSpotted && !isViewBlocked) || ((dist <= 1.5f)) && canReachPlayer())) {
@@ -105,11 +109,15 @@ namespace gl3 {
             }
 
         }
+        bool isGroundAhead = checkForGroundAhead();
+
+
+
+
         // std::cout << "[DEBUG] Current State: " << (int)currentState
         //           << " | Spotted: " << playerSpotted
         // << " | View Blocked: " << isViewBlocked
         //           << " | CanReach: " << canReachPlayer() << std::endl;
-
         // --- MOVEMENT LOGIC ---
         if (currentState == Botstate::chase) {
             float dir = (ship->getPosition().x < position.x) ? -1.0f : 1.0f;
@@ -121,6 +129,9 @@ namespace gl3 {
             b2Body_SetLinearVelocity(body, {dir * (PATROL_SPEED * 1.5f), b2Body_GetLinearVelocity(body).y});
         }
         else if (currentState == Botstate::patrol) {
+            if (isGroundAhead) {
+                flipSpriteDirection();
+            }
             float velErr = (PATROL_SPEED * patrolDirection) - b2Body_GetLinearVelocity(body).x;
             b2Body_SetLinearVelocity(body, {patrolDirection * PATROL_SPEED, b2Body_GetLinearVelocity(body).y});
         }
@@ -130,7 +141,7 @@ namespace gl3 {
             float dir = (lastKnownX < position.x) ? -1.0f : 1.0f;
 
             // Only move if we aren't already at the location
-            if (std::abs(position.x - lastKnownX) > 0.2f) {
+            if (std::abs(position.x - lastKnownX) > 0.2f && !isGroundAhead) {
                 patrolDirection = dir;
                 sprite->setScale({dir * abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z});
 
@@ -251,10 +262,10 @@ namespace gl3 {
             if (result.hitEntity->getType() == EntityType::Player) {
                 playerSpotted = true;
                 isViewBlocked = false;
-                std::cout << "PLAYER SPOTTED" << std::endl;
+                // std::cout << "PLAYER SPOTTED" << std::endl;
             } else {
                 if (result.hitEntity->getType() == EntityType::Wall) {
-                    std::cout << "WALL SPOTTED" << std::endl;
+                    // std::cout << "WALL SPOTTED" << std::endl;
                 }
                 playerSpotted = false;
                 isViewBlocked = true;
@@ -264,26 +275,41 @@ namespace gl3 {
             isViewBlocked = false;
         }
     }
-    void SecBot::checkForGroundAhead() {
+
+    bool SecBot::checkForGroundAhead() {
         b2Vec2 botPos = b2Body_GetPosition(body);
 
+
         // 1. Set up the origin and end points exactly as you had them
-        b2Vec2 origin = { botPos.x + (patrolDirection * 0.5f), botPos.y - 0.4f };
-        b2Vec2 end    = { botPos.x + (patrolDirection * 0.5f), botPos.y - 1.0f };
+
+        b2Vec2 origin = {botPos.x + (patrolDirection * 0.5f), botPos.y - 0.4f};
+
+        b2Vec2 end = {botPos.x + (patrolDirection * 0.5f), botPos.y - 1.0f};
+
 
         // 2. Define the configuration masks
+
         uint64_t category = gl3::PhysicsCategories::CATEGORY_RAY_SENSOR;
-        uint64_t mask     = gl3::PhysicsCategories::CATEGORY_FLOOR; // Only look for the floor!
+
+        uint64_t mask = gl3::PhysicsCategories::CATEGORY_FLOOR; // Only look for the floor!
+
 
         // 3. Call your global utility function
+
         RayCastResult groundResult = PhysicsUtils::CastRay(physicsWorld, origin, end, mask, category);
 
+
         // 4. Evaluate the hit flag or the hit entity
+
         if (!groundResult.didHit) {
             std::cout << "[DEBUG] Gap detected! Turning." << std::endl;
-            flipSpriteDirection();
+
+            return true;
         }
+        return false;
     }
+
+
     bool SecBot::canReachPlayer() {
         // If you use -1 for "no floor", check against that.
         // Otherwise, just compare the IDs directly.

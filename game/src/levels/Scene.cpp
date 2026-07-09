@@ -19,6 +19,8 @@ namespace gl3 {
     }
 
     void Scene::loadLevelData(const std::string &levelName, b2WorldId world) {
+        entities.clear();
+
         load(world);
 
         std::ifstream file(levelName);
@@ -50,10 +52,14 @@ namespace gl3 {
             if (ss >> type >> x >> y >> sx >> sy >> rotation >> linkID >> isGround >> is_Exit >> floorID) {
                 glm::vec3 pos(x, y, 0.0f);
                 glm::vec3 scale(sx, sy, 1.0f);
+                // Attempt to read floorID, but if it's not there, default to 0
+                // int floorID = 0;
+                // ss >> floorID;
 
 
                 if (type == "Ship") {
                     entities.push_back(std::make_unique<Ship>(spriteShader.get(), pos, scale, floorID, world));
+
                 } else if (type == "Box") {
                     entities.push_back(std::make_unique<Box>(spriteShader.get(), pos, scale, world));
                 } else if (type == "Floor") {
@@ -68,7 +74,7 @@ namespace gl3 {
                     if (linkID != 0) doorMap[linkID] = door.get();
                     entities.push_back(std::move(door));
                 } else if (type == "Switch") {
-                    auto sw = std::make_unique<Switch>(spriteShader.get(), pos, scale, world);
+                    auto sw = std::make_unique<Switch>(spriteShader.get(), pos, scale, floorID, world);
                     if (linkID != 0) switchMap[linkID] = sw.get();
                     entities.push_back(std::move(sw));
                 } else if (type == "SecBot") {
@@ -77,11 +83,11 @@ namespace gl3 {
                     entities.push_back(std::make_unique<LaserGuy>(spriteShader.get(), pos, scale, world, rotation));
                 }
                 else if (type == "Mirror") {
-                    entities.push_back(std::make_unique<Mirror>(spriteShader.get(), pos, scale, rotation, world));
+                    entities.push_back(std::make_unique<Mirror>(spriteShader.get(), pos, scale, rotation, linkID, world));
                 }
                 else if (type == "MirrorCube") {
                     std::cout << "DEBUG: Loading MirrorCube with rotation: " << rotation << std::endl;
-                    auto cube = std::make_unique<MirrorCube>(spriteShader.get(), pos, scale, rotation, world);
+                    auto cube = std::make_unique<MirrorCube>(spriteShader.get(), pos, scale, rotation,linkID, floorID,world);
                     if (linkID != 0) mirrorCubeMap[linkID] = cube.get(); // You are doing this!
                     entities.push_back(std::move(cube));
                 }
@@ -91,9 +97,9 @@ namespace gl3 {
                     entities.push_back(std::move(pipeSwitch));
                 }
                 else if (type == "Dog") {
-                    entities.push_back(std::make_unique<Dog>(spriteShader.get(), pos, scale, world));
+                    entities.push_back(std::make_unique<Dog>(spriteShader.get(), pos, scale, floorID, world));
                 } else if (type == "Stick") {
-                    entities.push_back(std::make_unique<Stick>(spriteShader.get(), pos, scale, world));
+                    entities.push_back(std::make_unique<Stick>(spriteShader.get(), pos, scale, floorID, world));
                 } else if (type == "Ladder") {
                     entities.push_back(std::make_unique<Ladder>(spriteShader.get(), pos, scale, world));
                     // Inside the parsing loop in Scene.cpp
@@ -120,7 +126,11 @@ namespace gl3 {
                 else if (type == "GoalSensor") {
                     entities.push_back(std::make_unique<GoalSensor>(spriteShader.get(), pos, scale, world));
                 }
+            }else {
+                // FAILURE
+                std::cout << "[LOADER ERROR] Failed to parse line: " << line << std::endl;
             }
+
         }
 
         // Inside Scene.cpp right after file loading finishes:
@@ -196,6 +206,7 @@ namespace gl3 {
                 speakerSwitch = static_cast<SpeakerSwitch *>(entity.get());
             if (entity->getType() == EntityType::SecBot) secBot = static_cast<SecBot *>(entity.get());
 
+            game->setShip(playerShip);
 
         }
         // 3. Now perform the handshakes for all bots
@@ -233,6 +244,16 @@ namespace gl3 {
         for (auto &entity: entities) {
             entity->update(game, dt);
         }
+        // 2. Remove any entities marked for death
+        entities.erase(
+            std::remove_if(entities.begin(), entities.end(),
+                [](const std::unique_ptr<Entity>& e) {
+                    // Check if this is a LaserGuy and if he is marked for removal
+                    auto* lg = dynamic_cast<LaserGuy*>(e.get());
+                    return lg != nullptr && lg->getShouldBeRemoved();
+                }),
+            entities.end()
+        );
     }
 
     void Scene::updatePhysics(float dt) {
@@ -322,7 +343,7 @@ namespace gl3 {
         if (player && floor) {
             if (floor->getIsGround()) return true;
 
-            if (player->isClimbing) return false;
+            if (player->getIsClimbing()) return false;
 
         }
 

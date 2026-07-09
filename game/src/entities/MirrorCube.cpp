@@ -16,7 +16,7 @@
 
 
 namespace gl3 {
-    MirrorCube::MirrorCube(Shader *shader, glm::vec3 position, glm::vec3 scale, float rotation, b2WorldId physicsWorld)
+    MirrorCube::MirrorCube(Shader *shader, glm::vec3 position, glm::vec3 scale, float rotation, int linkid, int floorid, b2WorldId physicsWorld)
 
         : Entity(shader,
 
@@ -28,7 +28,10 @@ namespace gl3 {
 
                  EntityType::MirrorCube),
 
-                 rotationAngle(rotation)
+                 rotationAngle(rotation),
+    linkID(linkid),
+    floorID(floorid)
+
  {
         this->setZOrder(1); // MIDGROUND
 

@@ -7,7 +7,7 @@ namespace gl3 {
     class MirrorCube: public Entity {
 
     public:
-        explicit MirrorCube(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), float rotationAngle = 0.0f, b2WorldId physicsWorld = b2_nullWorldId);
+        explicit MirrorCube(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), float rotationAngle = 0.0f, int linkID = 0, int floorID = 0, b2WorldId physicsWorld = b2_nullWorldId);
         void draw(Game *game) override;
         void update(Game *game, float deltaTime) override;
         RayCastResult castRay(b2Vec2 reflectionVec, b2Vec2 hitPoint);
@@ -18,6 +18,9 @@ namespace gl3 {
         Sprite* getPipeSprite() {
             return this->pipeSprite;
         }
+        int getLinkID() { return this->linkID; }
+        // ADD 'override' to match your base class contract
+        int getFloorID() const override { return this->floorID; }
 
 
 
@@ -25,6 +28,8 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        int floorID;
+        int linkID;
         float halfWidth, halfHeight;
         float pipeHalfWidth, pipeHalfHeight;
         float normal;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Entity.h"
+#include "Floor.h"
 #include "../Sprite.h"
 #include "box2d/collision.h"
 
@@ -8,7 +9,7 @@ namespace gl3 {
     class Dog;
     class Stick : public Entity {
     public:
-        Stick(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0.0f,0.0f,0.0f), b2WorldId physicsWorld = b2_nullWorldId);
+        Stick(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0.0f,0.0f,0.0f), int floorID = 0, b2WorldId physicsWorld = b2_nullWorldId);
         void update(Game *game, float deltaTime) override;
         void updateHoldingPosition(glm::vec3 playerPos);
         void draw(Game *game) override;
@@ -26,6 +27,8 @@ namespace gl3 {
         void teleport(Game* game, glm::vec3 correspVentPos);
         void startContact(Entity* other) override;
         void endContact(Entity* other) override;
+        void setFloorID(int floor) {floorID = floor;}
+        int getFloorID() const override {return floorID;}
         ~Stick() override;
 
 
@@ -35,6 +38,7 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        int floorID;
         bool isVisible = true;
         Dog* dawg = nullptr;
         bool hasLanded = false;
@@ -50,6 +54,8 @@ namespace gl3 {
         bool isTimerActive = false;
         std::vector<glm::vec3> trajectoryPoints;
         unsigned int vao, vbo;
+        Floor* floor = nullptr;
+
 
 
 

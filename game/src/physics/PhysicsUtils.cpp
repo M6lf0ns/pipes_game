@@ -3,6 +3,7 @@
 
 namespace gl3 {
 
+
     // Keep your exact callback logic, just marked static to protect scope
     static float MyCastCallback(b2ShapeId shapeId, b2Vec2 point, b2Vec2 normal, float fraction, void* context)
     {

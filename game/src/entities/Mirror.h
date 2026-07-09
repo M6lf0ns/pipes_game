@@ -8,15 +8,17 @@ namespace gl3 {
 
     class Mirror: public Entity {
     public:
-        explicit Mirror(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), float rotation = 0.0f, b2WorldId physicsWorld = b2_nullWorldId);
+        explicit Mirror(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), float rotation = 0.0f, int floorID = 0, b2WorldId physicsWorld = b2_nullWorldId);
         void draw(Game *game) override;
         RayCastResult castRay(b2Vec2 reflectionVec, b2Vec2 hitPoint);
         void rotateMirror(float angleInDegrees);
+        int getFloorID() const override { return this->floorID; }
 
         protected:
         void createPhysicsBody() override;
 
         private:
+        int floorID;
         float rotationAngle;
         float halfWidth, halfHeight;
         float normal;

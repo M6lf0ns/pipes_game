@@ -6,12 +6,13 @@
 #include "box2d/box2d.h"
 
 namespace gl3 {
-    Switch::Switch(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld)
+    Switch::Switch(Shader* shader, glm::vec3 position, glm::vec3 scale, int floorid, b2WorldId physicsWorld)
         :Entity(shader,
             position,
             scale,
             physicsWorld,
-              EntityType::Switch)
+              EntityType::Switch),
+    floorID(floorid)
 
     {
         this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/switch.png"));
@@ -38,7 +39,7 @@ namespace gl3 {
         // 2. Create the Shape (The "Ghost" Trigger)
         // Make it narrow so the triangle-ship tip has to be centered.
         // Make it thin so the box is definitely "on" it before it fires.
-        float sensorWidth = halfWidth; // 30% of the sprite width
+        float sensorWidth = 0.05f; // 30% of the sprite width
         float sensorHeight = 0.05f;           // Very thin
         b2Polygon sensorBox = b2MakeBox(sensorWidth, sensorHeight);
 
@@ -49,7 +50,8 @@ namespace gl3 {
         shapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_PLAYER |
                                    gl3::PhysicsCategories::CATEGORY_BOX |
                                        gl3::PhysicsCategories::CATEGORY_DOG |
-                                           gl3::PhysicsCategories::CATEGORY_SEC_BOT;
+                                           gl3::PhysicsCategories::CATEGORY_SEC_BOT |
+                                               gl3::PhysicsCategories::CATEGORY_STICK;
 
         // Attach it
         shape = b2CreatePolygonShape(body, &shapeDef, &sensorBox);
@@ -77,8 +79,14 @@ namespace gl3 {
             //std::cout << "[S-COUNT] Now holding: " << occupants.size() << " objects." << std::endl;
             if (targetDoor) targetDoor->openDoor();
         }
-        if (visitor->getType() == EntityType::Dog) {
+        else if (visitor->getType() == EntityType::Dog) {
             //std::cout << "DOG HAS ENTERED SWITCH SENSOR" << std::endl;
+        }
+        else if(visitor ->getType() == EntityType::Stick) {
+            sticko = dynamic_cast<Stick*>(visitor);
+            sticko->setFloorID(this->getFloorID());
+            std::cout << "SWITCH FLOOR ID: " << this->getFloorID() << std::endl;
+            std::cout << "Stick ID: " << sticko->getFloorID() << std::endl;
         }
     }
 

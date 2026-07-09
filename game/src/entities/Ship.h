@@ -44,11 +44,29 @@ namespace gl3 {
         void setCurrentPipeSwitch(PipeSwitch* pipeSwitch) {currentPipeSwitch = pipeSwitch;}
         void setCorrespVent(Vent* vent) {correspVent = vent;}
         void setPlayerToBox (float PlayerToBox) {playertobox = PlayerToBox;}
+        void setBoxPositionX(float boxPosX) {boxPositionX = boxPosX;}
+        void setCanClimb(bool canclimb) {canClimb = canclimb;}
+        void setBoxHeight(float height) {boxHeight = height;}
+        bool getIsClimbing() {return isClimbing;}
+        float getHalfHeight() {return playerHalfHeight;}
+        bool getPushPullPressed() {return push_PullKeyPressed;}
+        float getPlayerVelX() {return playerVelX;}
+        float getHalfWidth() {return playerHalfWidth;}
+        void setBoxDataValid(bool dataValid) {isBoxDataValid = dataValid;}
+        void setFacingBox (bool isFacing) {isFacingBox = isFacing;}
+        bool getIsDead() {return isDead;}
+        void setIsDead(bool dead) {isDead = dead;}
 
         int getCurrentFloorId () { return floorID; }
         float getDirection() {return direction;}
         void kill(Game* game);
 
+
+
+    protected:
+        void createPhysicsBody() override;
+
+    private:
         glm::vec3 playerPos;
         b2ShapeId shape;
         bool canClimb = false;
@@ -70,10 +88,6 @@ namespace gl3 {
         bool isBoxDataValid = false;
 
 
-    protected:
-        void createPhysicsBody() override;
-
-    private:
         bool isOnBox = false;
         bool requestedJump = false;
         float climbTimer = 0.0f;
@@ -125,7 +139,6 @@ namespace gl3 {
         bool LMBwasDown = false;
         bool RMBwasDown = false;
         bool isAiming = false;
-        bool R_wasPressed = false;
         bool F_wasPressed = false;
         bool E_wasPressed = false;
 
