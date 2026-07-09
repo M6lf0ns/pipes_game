@@ -59,7 +59,7 @@ namespace gl3 {
     void Ladder::onSensorEnter(Entity* other) {
         if (other->getType() == EntityType::Player) {
             Ship* player = static_cast<Ship*>(other);
-            player->canClimb = true;
+            player->setCanClimb(true);
             player->setCurrentLadder(this);
 
 
@@ -69,7 +69,7 @@ namespace gl3 {
     void Ladder::onSensorExit(Entity* other) {
         if (other->getType() == EntityType::Player) {
             Ship* player = static_cast<Ship*>(other);
-            player->canClimb= false;
+            player->setCanClimb(false);
             player->setCurrentLadder(nullptr);
 
             // Safety: Ensure they don't float away if they exit mid-climb

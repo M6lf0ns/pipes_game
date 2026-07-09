@@ -4,19 +4,19 @@
 
 # GameLab Project Repository
 
-|  General Info  | |
-| ---|---|
-| Working Title | `Edit me!` |
-| Final Title | `Edit me!` |
-| Student | `Name`, `edit-me`@stud-mail.uni-wuerzburg.de, `s######` |
-| Target Platform(s) | `Edit me!` |
-| Start Date | 21.10.2019 |
-| Study Program | Games Engineering B.Sc.|
-| Engine Version | Unity 2021.3.11f1 or Unreal 5.0.3 |
+|  General Info  |                                                                                                |
+| ---|------------------------------------------------------------------------------------------------|
+| Working Title | `Pipes`                                                                                        |
+| Final Title | `Pipes`                                                                                        |
+| Student | `Maritza Alfonso Rodriguez`, `maritza.alfonso-rodriguez`@stud-mail.uni-wuerzburg.de, `s452739` |
+| Target Platform(s) | `Windows`                                                                                      |
+| Start Date | 21.10.2019                                                                                     |
+| Study Program | Games Engineering B.Sc.                                                                        |
+| Engine Version | Unity 2021.3.11f1 or Unreal 5.0.3                                                              |
 
 ### Abstract
 
-`Insert your project description here, and keep it up-to-date.`
+`Life after humanity is hard, as the only sentient being left on earth you are forced to navigate the factory that was supposed to take your consciousness, while mindless, fellow robots try to stop you. Will you succeed? `
 
 `--- 8< --- READ, THEN REPLACE WITH CUSTOM CONTENT BELOW HERE --- 8< ---`
 

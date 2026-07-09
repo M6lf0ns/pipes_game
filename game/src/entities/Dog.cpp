@@ -8,12 +8,14 @@
 namespace gl3 {
 
     float gl3::Dog::dogRadius;
-    Dog::Dog(Shader *shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
+    Dog::Dog(Shader *shader, glm::vec3 position, glm::vec3 scale, int floorid, b2WorldId physicsWorld) : Entity(
         shader,
         position,
         scale,
         physicsWorld,
-        EntityType::Dog) {
+        EntityType::Dog),
+    floorID(floorid)
+    {
 
         this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/hog_idle.png"));
         this->setZOrder(3);
@@ -36,12 +38,21 @@ namespace gl3 {
     }
 
 
-
-
-   void Dog::update(Game *game, float deltaTime) {
+    void Dog::update(Game *game, float deltaTime) {
+        if (enVent != nullptr) {
+            // If the pointer exists, verify it's still a valid memory object
+            // For example, check if its Type is still correct
+            if (enVent->getType() != EntityType::Vent) {
+                std::cout << "[CRITICAL ERROR] enVent pointer is corrupted!" << std::endl;
+                enVent = nullptr; // Reset to clean state
+            }
+        }
+        // std::cout << "EXVENT " << exVent << std::endl;
+        // std::cout << "ENVENT " << enVent << std::endl;
         if (isWalking) {
             animTimer += deltaTime;
-            if (animTimer >= 0.05f) { // Your frame speed
+            if (animTimer >= 0.05f) {
+                // Your frame speed
                 animTimer = 0.0f;
                 animFrame = (animFrame + 1) % walkingFrames.size();
 
@@ -53,21 +64,26 @@ namespace gl3 {
             this->sprite->setTexture(idleTexture);
             Entity::update(game, deltaTime);
         }
+        // std::cout << "FLOOR ID IS OF DOG " << this->getFloorID() << std::endl;
 
 
     if (this->stickHasLanded) {
 
-        if (enVent == nullptr) {
-            std::cout << "ENTRY VENT NOT RECEIVED" << std::endl;
-        }
-        if (exVent == nullptr) {
-            std::cout << "EX VENT NOT RECEIVED" << std::endl;
-        }
+        // if (enVent == nullptr) {
+        //     std::cout << "ENTRY VENT NOT RECEIVED" << std::endl;
+        // }
+        // if (exVent == nullptr) {
+        //     std::cout << "EX VENT NOT RECEIVED" << std::endl;
+        // }
+        bool onWrongFloor = this->getFloorID() != targetFloorID;
         // 1. ALWAYS CHECK TELEPORTATION FIRST
+
+
         if (enVent && exVent && enVent->getIsOpen()) {
             std::cout << "WE ARE REACHING TELEPORTATION CODE" << std::endl;
             float distance = glm::distance(enVent->getPosition().x, this->getPosition().x);
             float maxAllowedDist = 0.01f;
+
             if (distance <= maxAllowedDist) {
                 glm::vec3 exVentPos = exVent->getPosition();
 
@@ -79,18 +95,19 @@ namespace gl3 {
                 this->stickHasLanded = false;
                 b2Body_SetLinearVelocity(body, b2Vec2_zero);
 
-                this->setEntryVent(nullptr);
-                this->setExitVent(nullptr);
+                // this->setEntryVent(nullptr);
+                // this->setExitVent(nullptr);
                 isWalking = false;
                 return; // Exit completely so no movement calculations happen!
             }
         }
 
+
         // 2. MOVEMENT CALCULATIONS ONLY RUN IF WE DID NOT TELEPORT
         b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
-        float dist = std::abs(targetLocation - position.x);
+        float dist = std::abs(targetLocation.x - position.x);
         float stopThreshold = 0.05f;
-        float direction = (targetLocation > position.x) ? 1.0f : -1.0f;
+        float direction = (targetLocation.x  > position.x) ? 1.0f : -1.0f;
 
         // std::cout << "DOG POS: " << position.x
         //           << " | TARGET: " << targetLocation
@@ -118,6 +135,8 @@ namespace gl3 {
         b2Body_SetAwake(body, true);
     }
 }
+
+
 
     void Dog::createPhysicsBody() {
 

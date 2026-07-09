@@ -7,13 +7,14 @@
 #include "../physics/PhysicsUtils.h"
 
 namespace gl3 {
-    Mirror::Mirror(Shader* shader, glm::vec3 position, glm::vec3 scale, float rotation, b2WorldId physicsWorld)
+    Mirror::Mirror(Shader* shader, glm::vec3 position, glm::vec3 scale, float rotation, int floorid, b2WorldId physicsWorld)
       :Entity(shader,
           position,
           scale,
           physicsWorld,
           EntityType::Mirror),
-    rotationAngle(rotation)
+    rotationAngle(rotation),
+    floorID(floorid)
 
     {
         this->sprite = new Sprite(position, scale, Texture::LoadTexture("assets/textures/mirror.png"));

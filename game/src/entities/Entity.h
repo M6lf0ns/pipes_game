@@ -4,6 +4,7 @@
 #include "../rendering/Shader.h"
 #include "box2d/id.h"
 #include "../EntityType.h"
+#include "box2d/box2d.h"
 #include "box2d/collision.h"
 
 namespace gl3{
@@ -15,9 +16,11 @@ namespace gl3{
                glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
                glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f),
                b2WorldId physicsWorld = b2_nullWorldId,
-               EntityType type = EntityType::None, float initialRotation = 0.0f);
+               EntityType type = EntityType::None, float initialRotation = 0.0f,
+               int floorID = 0);
 
         virtual ~Entity();
+        virtual int getFloorID() const { return -1; } // Default: no floor
 
         virtual void update(Game *game, float deltaTime) {}
 
@@ -60,6 +63,7 @@ namespace gl3{
 
 
     protected:
+        int floorID;
         Sprite* sprite = nullptr;
         int zOrder = 0;
         EntityType type;

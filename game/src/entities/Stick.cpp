@@ -9,12 +9,13 @@
 
 namespace gl3 {
 
-    Stick::Stick(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld) : Entity(
+    Stick::Stick(Shader* shader, glm::vec3 position, glm::vec3 scale, int floorid, b2WorldId physicsWorld) : Entity(
         shader,
         position,
         scale,
         physicsWorld,
-        EntityType::Stick)
+        EntityType::Stick),
+    floorID(floorid)
     {
         this -> sprite = new Sprite (position, scale, Texture::LoadTexture("assets/textures/temp_pipe.png"));
         this->setZOrder(4);
@@ -43,6 +44,10 @@ namespace gl3 {
 
         // std::cout << "IS DAWG BEING SET??" << dawg << std::endl;
 
+        // std::cout << "FLOOR ID OF STICK IS " << floorID << std::endl;
+        if (dawg) {
+            dawg->setLocalStickFloorID(this->getFloorID());
+        }
         if (isFollowingPlayer) {
             b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
             b2Body_SetAngularVelocity(body, 0.0f);
@@ -84,8 +89,10 @@ namespace gl3 {
             hasBeenThrown = false;
             hasLanded = true;
             if (dawg != nullptr) {
-            dawg->setStickHasLanded(hasLanded);
-            dawg->setTargetLocation(position.x);
+                dawg->setStickHasLanded(hasLanded);
+                dawg->setTargetLocation(this->getPosition());
+                dawg->setLocalStickFloorID(this->getFloorID());
+
             }
 
 
@@ -123,7 +130,8 @@ namespace gl3 {
         shapeDef.filter.maskBits = gl3::PhysicsCategories::CATEGORY_FLOOR |
                                  gl3::PhysicsCategories::CATEGORY_WALL |
                                  gl3::PhysicsCategories::CATEGORY_BOX |
-                                     gl3::PhysicsCategories::CATEGORY_DOOR;
+                                     gl3::PhysicsCategories::CATEGORY_DOOR |
+                                         gl3::PhysicsCategories::CATEGORY_SWITCH;
 
 
         // Use b2MakeBox with the correct half-extents
@@ -243,12 +251,19 @@ namespace gl3 {
     }
 
     void Stick::startContact(Entity* other) {
+        if (other && other->getType() == EntityType::Floor) {
+            floor = dynamic_cast<Floor*>(other);
+            this->setFloorID(floor->getFloorID());
+        }
 
 
     }
 
     void Stick::endContact(Entity* other) {
         if (hasBeenThrown) hasLanded = false;
+        if (other && other->getType() == EntityType::Floor) {
+            floor = nullptr;
+        }
     }
 
     void Stick::setDawg(Dog* dog) {
@@ -288,7 +303,8 @@ namespace gl3 {
             b2Body_SetAwake(body, true);
             this->setPosition(pos);
             if (dawg != nullptr) {
-                dawg->setTargetLocation(pos.x);
+                dawg->setTargetLocation(this->getPosition());
+                dawg->setLocalStickFloorID(this->getFloorID());
             }
 
         }

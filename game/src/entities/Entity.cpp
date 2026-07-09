@@ -5,7 +5,7 @@
 #include "../Game.h"
 
 namespace gl3 {
-    Entity::Entity(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, EntityType type, float initialRotation) :
+    Entity::Entity(Shader* shader, glm::vec3 position, glm::vec3 scale, b2WorldId physicsWorld, EntityType type, float initialRotation, int floorid) :
             shader(shader),
             position(position),
             scale(scale),
@@ -13,7 +13,9 @@ namespace gl3 {
             body(b2_nullBodyId),
             shape(b2_nullShapeId),
             type(type),
-    zRotation(initialRotation)
+    zRotation(initialRotation),
+    floorID(floorid)
+
     {}
 
     Entity::~Entity()
@@ -22,6 +24,7 @@ namespace gl3 {
         {
             if(b2Body_IsValid(body))
                 b2DestroyBody(body);
+            std::cout << "DEBUG: Physics Body destroyed successfully." << std::endl;
 
         }
         delete sprite; // Clean up the pointer

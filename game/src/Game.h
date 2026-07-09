@@ -12,6 +12,7 @@
 #include <functional>
 #include <map>
 
+
 #include "levels/Scene.h"
 #include "Sprite.h"
 #
@@ -36,8 +37,11 @@ namespace gl3 {
         Game(int width, int height, const std::string &title);
         virtual ~Game();
         void run();
+        void saveGame();
+        int loadSavedLevel();
+        bool getIsGameOver() {return isGameOver;}
         glm::mat4 calculateMvpMatrix(glm::vec3 position, float zRotationInDegrees, glm::vec3 scale);
-
+        glm::mat4 calculateUIMvPMatrix(glm::vec3 position, glm::vec3 scale);
         Ship *getShip() { return ship; }
         GLFWwindow *getWindow() { return window; }
         const b2WorldId getPhysicsWorld() const;
@@ -51,7 +55,7 @@ namespace gl3 {
         // Define the PTM Ratio as a public constant
         // Based on your 720p window and zoom=2.0f, the ratio is 180:1
         static constexpr float PTM_RATIO = 100.0f;
-        bool isGameOver = false;
+
         void requestSceneSwitch(int ID);
         void switchScene (int ID);
         void setGoalReached(bool reachedGoal) {goalReached = reachedGoal;};
@@ -63,6 +67,10 @@ namespace gl3 {
         void SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
 
     private:
+        bool isGameOver = false;
+        bool rKeyWasPressed = false;
+        float endGameTimer = 0.0f;
+        bool isWaitingToEnd = false;
         float delayTimer = 0.0f;
         bool isWaitingToSwitch = false;
         bool goalReached = false;

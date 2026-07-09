@@ -18,6 +18,9 @@
 #include "entities/Stick.h"
 #include "entities/Switch.h"
 #include <algorithm> //required for sort
+#include <fstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "entities/Dog.h"
 
@@ -78,6 +81,12 @@ namespace gl3 {
         levelFileRegistry[5] = "../../assets/levels/level5.txt";
         levelFileRegistry[6] = "../../assets/levels/level6.txt";
         levelFileRegistry[7] = "../../assets/levels/level7.txt";
+        levelFileRegistry[8] = "../../assets/levels/level8.txt";
+        levelFileRegistry[9] = "../../assets/levels/level9.txt";
+        levelFileRegistry[10] = "../../assets/levels/level10.txt";
+        levelFileRegistry[11] = "../../assets/levels/level11.txt";
+        levelFileRegistry[12] = "../../assets/levels/level12.txt";
+        levelFileRegistry[13] = "../../assets/levels/level13.txt";
 
         // Simply set state! No sprite creation or texture file reads here.
         this->idToLoad = 1; // <-- CHANGE THIS FROM 0 TO 1
@@ -97,13 +106,24 @@ namespace gl3 {
 
         // This 'scale' parameter is the most important part!
         model = glm::scale(model, scale);
+        float cameraX = 0.0f;
 
-        // 2. View Matrix
-        float shipX = (ship != nullptr) ? ship->getPosition().x : 0.0f;
+        // 2. View Matrix - The Smooth Follow
+        if (ship != nullptr) {
+            float targetX = ship->getPosition().x;
+
+            // SMOOTHING: Move 10% of the distance each frame
+            // This makes it feel professional, not like a locked-on camera
+            cameraX += (targetX - cameraX) * 0.1f;
+
+            // CLAMPING: Prevent it from showing the "void"
+            // Adjust 0.0f and 20.0f to match your level boundaries
+            cameraX = std::clamp(cameraX, 0.0f, 20.0f);
+        }
         float cameraY = 1.0f;
         glm::mat4 view = glm::lookAt(
-            glm::vec3(shipX, cameraY, 1.0f),
-            glm::vec3(shipX, cameraY, 0.0f),
+            glm::vec3(cameraX, cameraY, 1.0f),
+            glm::vec3(cameraX, cameraY, 0.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         );
 
@@ -144,13 +164,7 @@ namespace gl3 {
                 std::cout << "[CRITICAL] Window close flag detected! Current State: " << (int)currentState << std::endl;
             }
 
-            if (isGameOver) {
-                if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-                    resetGame();
-                }
-                glfwPollEvents();
-                continue;
-            }
+
 
             update();
 
@@ -173,8 +187,16 @@ namespace gl3 {
             glfwPollEvents();
         }
 
+        if ((currentState == GameState::Playing ||
+      currentState == GameState::Paused  ||
+      currentState == GameState::GameOver) && currentScene)
+        {
+            saveGame();
+        }
+
         glDeleteVertexArrays(1, &VAO);
     }
+
 
     void Game::update() {
         bool justPressedESC = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
@@ -210,14 +232,47 @@ namespace gl3 {
 
         }
 
+        if (ship) {
+            // std::cout << "IS SHIP DEAD?" << ship->getIsDead() << std::endl;
+        }
 
+        // std::cout << "IS THE GAME OVER RN? " <<  isGameOver << std::endl;
+        if (ship != nullptr && ship->getIsDead()) {
+            std::cout << "IDTOLOAD IS " << idToLoad << std::endl;
+            isGameOver = true;
+        }
 
         if (isGameOver) {
-            if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-                resetGame();
+            if (!isWaitingToEnd) {
+                isWaitingToEnd = true;
+                endGameTimer = 1.0f;
+
             }
-            return;
+            endGameTimer -= deltaTime;
+
+            if (endGameTimer <= 0.0f) {
+                currentState = GameState::GameOver;
+                isWaitingToEnd = false;
+                isGameOver = false;
+            }
+
+            // Optional: Draw a "GAME OVER - PRESS R" text here before swapping buffers
+
+            if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+                if (!rKeyWasPressed) { // Only reset if R was NOT held down previously
+                    resetGame();
+                    rKeyWasPressed = true;
+                }
+            } else {
+                rKeyWasPressed = false; // Reset the latch
+            }
+
+            glfwPollEvents();
+            return; // Skips the rest of the loop (physics/rendering) while game over
         }
+
+
+
         // In Game::update()
         if (goalReached) {
             if (!isWaitingToSwitch) {
@@ -232,6 +287,7 @@ namespace gl3 {
                 int nextLevel = idToLoad + 1;
                 requestSceneSwitch(nextLevel);
 
+
                 // Reset flags
                 isWaitingToSwitch = false;
                 goalReached = false;
@@ -240,6 +296,7 @@ namespace gl3 {
 
 
 
+#ifdef _DEBUG
 
         // 1. Enter/Exit Input Mode
         if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && !inputMode) {
@@ -268,12 +325,18 @@ namespace gl3 {
                 if (!levelInputBuffer.empty()) {
                     int targetLevel = std::stoi(levelInputBuffer);
                     std::cout << "\n[GAME] Switching to Level: " << targetLevel << std::endl;
+
+                    // --- ADD THIS LINE ---
+                    this->idToLoad = targetLevel;
+                    // ---------------------
+
                     this->switchScene(targetLevel);
                 }
                 inputMode = false;
                 levelInputBuffer = "";
             }
         }
+#endif
     }
     void Game::ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB) {
         Entity* entityA = static_cast<Entity*>(b2Shape_GetUserData(shape_idA));
@@ -320,9 +383,32 @@ namespace gl3 {
         }
     }
 
+    glm::mat4 Game::calculateUIMvPMatrix(glm::vec3 position, glm::vec3 scale) {
+        // 1. Model Matrix (Positioned relative to center of screen)
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, position);
+        model = glm::scale(model, scale);
+
+        // 2. UI View Matrix (Identity - ignores camera position!)
+        glm::mat4 view = glm::mat4(1.0f);
+
+        float zoom = 2.0f;
+        // 3. UI Projection Matrix (Simple Orthographic)
+        // Matches your game's aspect ratio
+        glm::mat4 projection = glm::ortho(-zoom * aspect, zoom * aspect, -zoom, zoom, -1.0f, 1.0f);
+
+        return projection * view * model;
+    }
 
   void Game::draw() {
     if (currentState == GameState::MainMenu) {
+        if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
+            int levelToStart = loadSavedLevel(); // Grab the last saved level
+            std::cout << "[GAME] Continuing from Level: " << levelToStart << std::endl;
+            this->switchScene(levelToStart);
+            currentState = GameState::Playing;
+        }
+
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -341,7 +427,7 @@ namespace gl3 {
             menuSprite = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), menuTexID);
         }
 
-        glm::vec3 menuPosition = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 menuPosition = glm::vec3(0.0f, 0.0f, 0.0f);
         // Change -8.0f to 8.0f
         glm::vec3 menuScale = glm::vec3(8.0f, 4.0f, 1.0f);
 
@@ -354,13 +440,13 @@ namespace gl3 {
         spriteShader->setInt("spriteTexture", 0);
 
         // Add 180 degrees to the rotation to flip the orientation without mirroring the matrix
-        glm::mat4 menuMvp = calculateMvpMatrix(menuPosition, 0.0f, menuScale);
+        glm::mat4 menuMvp = calculateUIMvPMatrix(menuPosition, menuScale);
         menuSprite->draw(*spriteShader, menuMvp);
 
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
     }
-    else if (currentState == GameState::Paused) {
+    else if (currentState == GameState::Paused || currentState == GameState::GameOver) {
         // --- 1. DRAW THE FROZEN GAMEPLAY IN THE BACKGROUND ---
         glClear(GL_DEPTH_BUFFER_BIT); // Clear depth so UI renders over geometry
         glEnable(GL_DEPTH_TEST);
@@ -378,8 +464,7 @@ namespace gl3 {
         }
         spriteShader->use();
 
-        float cameraX = (ship != nullptr) ? ship->getPosition().x : 0.0f;
-        glm::vec3 dynamicUIPos = glm::vec3(cameraX, 1.0f, 0.0f);
+        glm::vec3 backdropPos = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 uiScale = glm::vec3(8.0f, 4.0f, 1.0f);
 
         // --- 3. DRAW THE TRANSPARENT BLACK BACKDROP (PURE COLOR, NO IMAGE) ---
@@ -390,31 +475,42 @@ namespace gl3 {
             pauseBackdrop = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 0);
         }
 
-        pauseBackdrop->setPosition(dynamicUIPos);
+        pauseBackdrop->setPosition(backdropPos);
         pauseBackdrop->setScale(uiScale);
         pauseBackdrop->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.6f));
 
-        glm::mat4 backdropMvp = calculateMvpMatrix(dynamicUIPos, 0.0f, uiScale);
+        glm::mat4 backdropMvp = calculateUIMvPMatrix(backdropPos, uiScale);
         pauseBackdrop->draw(*spriteShader, backdropMvp);
 
         // --- 4. DRAW THE "PAUSED" TEXT SPRITE OVER THE BACKDROP ---
         spriteShader->setBool("useTexture", true);
         spriteShader->setInt("spriteTexture", 0);
 
-        static gl3::Sprite* pauseTextSprite = nullptr;
-        if (pauseTextSprite == nullptr) {
-            std::cout << "[DEBUG] Loading Pause Text Texture File..." << std::endl;
-            GLuint textTexID = Texture::LoadTexture("assets/textures/pause_menu.png");
-            pauseTextSprite = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), textTexID);
+        static gl3::Sprite* menuTextSprite = nullptr;
+        std::string texturePath = (currentState == GameState::Paused)
+                                  ? "assets/textures/pause_menu.png"
+                                  : "assets/textures/game_over.png"; // Load your Game Over texture here
+
+        // Only reload if we aren't using the right one, or if it's null
+        if (menuTextSprite == nullptr) {
+            std::cout << "[DEBUG] Loading Menu Text Texture..." << std::endl;
+            GLuint textTexID = Texture::LoadTexture(texturePath.c_str());
+            menuTextSprite = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), textTexID);
         }
 
-        glm::vec3 textScale = glm::vec3(7.0f, 4.0f, 1.0f);
-        pauseTextSprite->setPosition(dynamicUIPos);
-        pauseTextSprite->setScale(textScale);
-        pauseTextSprite->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        // Optional: If you want to switch the texture dynamically when state changes:
+        // (If you don't do this, the first one loaded will stay)
+        // If you want it to switch, add:
+        // menuTextSprite->setTexture(Texture::LoadTexture(texturePath.c_str()));
 
-        glm::mat4 textMvp = calculateMvpMatrix(dynamicUIPos, 0.0f, textScale);
-        pauseTextSprite->draw(*spriteShader, textMvp);
+        glm::vec3 textPos = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 textScale = glm::vec3(7.0f, 4.0f, 1.0f);
+        menuTextSprite->setPosition(textPos);
+        menuTextSprite->setScale(textScale);
+        menuTextSprite->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+        glm::mat4 textMvp = calculateUIMvPMatrix(textPos, textScale);
+        menuTextSprite->draw(*spriteShader, textMvp);
 
         glUseProgram(0);
         glEnable(GL_DEPTH_TEST);
@@ -490,19 +586,54 @@ namespace gl3 {
         return worldDef.gravity;
     }
 
-    void Game::resetGame() {
-        isGameOver = false;
 
-        if (ship) {
-            ship->isDead = false;
-            b2Rot rotation = b2MakeRot(0.0f);
-            getShip()->setPosition(glm::vec3(1.5f, 0.0f, 0.0f));
-            b2Body_SetLinearVelocity(ship->getBody(), {0.0f, 0.0f});
-            b2Body_SetAngularVelocity(ship->getBody(), 0.0f);
-            b2Body_Enable(ship->getBody());
-            std::cout << "Game Reset!" << std::endl;
-            gameOverTimer = 0.0f;
+    void Game::resetGame() {
+        isGameOver = false; // Turn off the death screen
+
+        // This wipes everything and reloads from the text file
+        switchScene(idToLoad);
+        currentState = GameState::Playing;
+
+        std::cout << "[GAME] Level Hard Reset!" << std::endl;
+    }
+
+#include <filesystem>
+    namespace fs = std::filesystem;
+
+    void Game::saveGame() {
+        // 1. Define the directory path (e.g., a "saves" folder in your project)
+        fs::path saveDir = "saveData";
+
+        // 2. Create the directory if it doesn't exist
+        if (!fs::exists(saveDir)) {
+            fs::create_directories(saveDir);
         }
+
+        // 3. Define the full file path
+        fs::path filePath = saveDir / "savegame.txt";
+
+        std::ofstream saveFile(filePath);
+        if (saveFile.is_open()) {
+            saveFile << idToLoad;
+            saveFile.close();
+            std::cout << "[GAME] Saved to: " << filePath << std::endl;
+        }
+    }
+
+    int Game::loadSavedLevel() {
+        fs::path filePath = fs::path("saveData") / "savegame.txt";
+
+        if (!fs::exists(filePath)) {
+            return 1; // Default to Level 1 if no save exists
+        }
+
+        std::ifstream saveFile(filePath);
+        int level = 1;
+        if (saveFile.is_open()) {
+            saveFile >> level;
+            saveFile.close();
+        }
+        return level;
     }
 
 

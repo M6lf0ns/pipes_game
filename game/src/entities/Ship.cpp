@@ -492,15 +492,23 @@ namespace gl3 {
 
 
 
-
+        bool isPickedUp = false;
 
         if (myStick != nullptr) {
+            if (myStick->getIsFollowingPlayer()) {
+                isPickedUp = true;
+            }
             bool isEPressed = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS);
             if (isEPressed && !E_wasPressed) {
                 // CASE 1: We are already holding the stick -> Drop it immediately!
-                if (myStick->getIsFollowingPlayer()) {
+                if (myStick->getIsFollowingPlayer() && !correspVent) {
                     std::cout << "MANUALLY DROPPING STICK" << std::endl;
                     myStick->dropStick(position, direction);
+                    isPickedUp = false;
+                }
+                else if (correspVent && correspVent->getIsOpen() && isPickedUp) {
+                    myStick->teleport(game, correspVent->getConnectedTwin()->getPosition());
+                    isPickedUp = false;
                 }
                 // CASE 2: The stick is on the ground -> Check distance mathematically
                 else {
@@ -511,6 +519,8 @@ namespace gl3 {
                     const float PICKUP_RANGE = 1.0f;
 
                     if (currentDistance <= PICKUP_RANGE) {
+
+
                         std::cout << "PICKING UP STICK (Distance Check Passed: " << currentDistance << ")" << std::endl;
                         myStick->pickUpStick(game, position, direction);
                     } else {
@@ -658,7 +668,7 @@ namespace gl3 {
                                    gl3::PhysicsCategories::CATEGORY_VENT |
                                    gl3::PhysicsCategories::CATEGORY_STICK |
                                    gl3::PhysicsCategories::CATEGORY_RAY_SENSOR |
-                                       gl3::PhysicsCategories::CATEGORY_MIRROR_PIPE |
+                                       // gl3::PhysicsCategories::CATEGORY_MIRROR_PIPE |
                                            gl3::PhysicsCategories::CATEGORY_GOAL_SENSOR;
 
 
@@ -744,6 +754,7 @@ namespace gl3 {
                 if (f->getPosition().y < this->getPosition().y) {
                     currentFloor = f;
                     floorID = currentFloor->getFloorID();
+                    std::cout << "[SHIP SHIP] floorID: " << floorID << std::endl;
                 }
             }
 
@@ -758,6 +769,5 @@ namespace gl3 {
     void Ship::kill(Game *game) {
         isDead = true;
         std::cout << "Player Died" << std::endl;
-        game->requestSceneSwitch(game->getIdToLoad());
     }
 }

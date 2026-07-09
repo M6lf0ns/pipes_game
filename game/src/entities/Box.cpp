@@ -98,13 +98,13 @@ namespace gl3 {
         //make sure the player cant pull or push the box if too far away
         if (activePlayer) {
 
-            activePlayer->boxPositionX = this->getPosition().x;
-            activePlayer->boxHeight = this->getPosition().y + this->GetHalfHeight();
+            activePlayer->setBoxPositionX(this->getPosition().x);
+            activePlayer->setBoxHeight(this->getPosition().y + this->GetHalfHeight());
 
 
 
             float dist = glm::distance(activePlayer->getPosition().x, this->getPosition().x);
-            if (dist > (activePlayer->playerHalfWidth + this->halfWidth + 0.2f)) {
+            if (dist > (activePlayer->getHalfHeight() + this->halfWidth + 0.2f)) {
                 playerContactCount = 0; // Force a "drop" if the player is too far
             }
         }
@@ -114,7 +114,7 @@ namespace gl3 {
         float actualWidth = GetHalfWidth();
         //std::cout << "BOX WIDTH " << actualWidth << std::endl;
         //std::cout << "Is box touching player? " << playerContactCount << std::endl;
-        if (activePlayer && playerContactCount > 0 && activePlayer->push_PullKeyPressed)
+        if (activePlayer && playerContactCount > 0 && activePlayer->getPushPullPressed())
         {
 
             float playerHalfWidth = GetHalfWidth();
@@ -122,8 +122,8 @@ namespace gl3 {
 
             b2Body_SetAwake(body, true);
 
-            float playerVelX = activePlayer->playerVelX;
-            float playerPosX = activePlayer->playerPos.x;
+            float playerVelX = activePlayer->getPlayerVelX();
+            float playerPosX = activePlayer->getPosition().x;
             b2Vec2 boxPos = b2Body_GetPosition(body);
             b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
 
@@ -149,7 +149,7 @@ namespace gl3 {
             // Calculate the ideal distance (player body edge to box body edge)
             // Ensure this matches how your player and box overlap to be considered 'touching'.
             // This is the ideal separation we want to maintain.
-            float idealSeparation = activePlayer->playerHalfWidth + boxHalfWidth + 0.001f; // 0.251f total
+            float idealSeparation = activePlayer->getHalfWidth() + boxHalfWidth + 0.001f; // 0.251f total
 
             // Determine if pushing or pulling (based on your existing logic)
             bool pushing = (playerVelX * playerToBoxX > 0); // moving toward box
@@ -249,13 +249,13 @@ namespace gl3 {
             // --- FIX: CALCULATE IT RIGHT HERE ---
             float calculatedDist = this->getPosition().x - activePlayer->getPosition().x;
 
-            activePlayer->boxPositionX = this->getPosition().x;
-            activePlayer->boxHeight = this->getPosition().y + this->GetHalfHeight();
+            activePlayer->setBoxPositionX(this->getPosition().x);
+            activePlayer->setBoxHeight(this->getPosition().y + this->GetHalfHeight());
 
             // Pass the freshly calculated value, NOT a stale member variable
             activePlayer->setPlayerToBox(calculatedDist);
 
-            activePlayer->isBoxDataValid = true;
+            activePlayer->setBoxDataValid(true);
 
         }
        // playerContactCount++;
@@ -275,9 +275,9 @@ namespace gl3 {
             // (This handles cases where the player might touch the box with two different fixtures)
             if (playerContactCount == 0) {
                 if (activePlayer) {
-                    activePlayer->isFacingBox = false;
+                    activePlayer->setFacingBox(false);
                     activePlayer->setPlayerToBox(-9999.0f);
-                    activePlayer->isBoxDataValid = false;
+                    activePlayer->setBoxDataValid(false);
                     activePlayer = nullptr;
                 }
             }

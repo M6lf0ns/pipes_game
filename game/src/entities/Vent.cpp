@@ -81,7 +81,7 @@ namespace gl3 {
     void Vent::onSensorExit(Entity *other) {
         if (other && other->getType() == EntityType::Player) {
             Ship* player = dynamic_cast<Ship*>(other);
-            player->setCorrespVent(nullptr);
+            // player->setCorrespVent(nullptr);
         }
         else if (other && other->getType() == EntityType::Dog) {
             Dog* dog = dynamic_cast<Dog*>(other);
@@ -89,10 +89,10 @@ namespace gl3 {
             // ONLY clear the pointers if the dog is exiting its registered entrance vent naturally.
             // If it teleported, 'this' will match its entrance, but we only clear it if we aren't
             // trying to preserve a tracking state.
-            if (dog->getEntryVent() == this) {
-                dog->setEntryVent(nullptr);
-                dog->setExitVent(nullptr);
-            }
+            // if (dog->getEntryVent() == this) {
+            //     dog->setEntryVent(nullptr);
+            //     dog->setExitVent(nullptr);
+            // }
         }
 
     }
