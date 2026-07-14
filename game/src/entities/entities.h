@@ -17,4 +17,5 @@
 #include "PipeSwitch.h"
 #include "LaserGuy.h"
 #include "GoalSensor.h"
+#include "TutorialSign.h"
 

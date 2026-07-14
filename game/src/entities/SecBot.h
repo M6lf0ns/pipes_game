@@ -37,6 +37,9 @@ namespace gl3 {
         //void debugCheckAABBOverlap();
 
     private:
+        bool soundPlayed = false;
+        float contactCooldown = 0.0f;
+        bool isSpeakerAhead = false;
         std::vector<GLuint> patrolFrames;
         std::vector<GLuint> chaseFrames;
         std::vector<GLuint> searchFrames;
@@ -44,6 +47,8 @@ namespace gl3 {
         float animTimer = 0.0f;     // Tracks time passed *within* the current frame
         const float frameDuration = 0.1f; // How long each frame stays on screen (0.1s = 10 FPS)
 
+        bool isGroundAhead = false;
+        bool isObstacleAhead = false;
         float rotationAng;
         Floor* currentFloor = nullptr;
         Ship* ship = nullptr;
@@ -68,7 +73,7 @@ namespace gl3 {
         int floorID;
 
         // 3. (Optional, but good practice) Speed constant
-        const float PATROL_SPEED = 0.5f; // Example speed in meters/second
+        const float PATROL_SPEED = 0.65f; // Example speed in meters/second
         bool isFrozen = false;
 
 

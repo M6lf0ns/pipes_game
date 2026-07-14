@@ -10,6 +10,7 @@ namespace gl3 {
         void onSensorEnter(Entity *other) override;
         void onSensorExit(Entity *other) override;
         bool getCanBeFlipped() {return canBeFlipped;}
+        void update(Game *game, float deltaTime) override;
         void flipSwitch();
         void setTargetSpeaker(Speaker* speaker) {targetSpeaker = speaker;};
     protected:
@@ -18,6 +19,7 @@ namespace gl3 {
 
     private:
         bool isOn = false;
+        bool wasOn = false;
         bool canBeFlipped = false;
         Speaker* targetSpeaker = nullptr;
     };

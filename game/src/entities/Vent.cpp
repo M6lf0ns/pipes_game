@@ -89,6 +89,8 @@ namespace gl3 {
             // ONLY clear the pointers if the dog is exiting its registered entrance vent naturally.
             // If it teleported, 'this' will match its entrance, but we only clear it if we aren't
             // trying to preserve a tracking state.
+
+            // std::cout << "IS DOGHASTELEPORTED TRUE? " << dog->getDogHasTeleported() << std::endl;
             // if (dog->getEntryVent() == this) {
             //     dog->setEntryVent(nullptr);
             //     dog->setExitVent(nullptr);
@@ -105,6 +107,7 @@ namespace gl3 {
 
     void Vent::initConnectedTwin(Vent* twin) {
         this->connectedTwin = twin;
+        std::cout << "[DEBUG] Vent " << this << " linked to Twin " << twin << std::endl;
 
         // If our twin is open (like the unreachable exit), we stay synced
         // or use this space to handle your logic initialization!

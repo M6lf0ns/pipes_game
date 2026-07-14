@@ -6,15 +6,11 @@ set(SOURCE_FILES src/main.cpp
         src/Game.h
         src/rendering/Shader.cpp
         src/rendering/Shader.h
-        src/rendering/Mesh.cpp
-        src/rendering/Mesh.h
         src/entities/Entity.cpp
         src/entities/Entity.h
         src/entities/Ship.cpp
         src/entities/Ship.h
         src/Assets.h
-        src/entities/Enemy.cpp
-        src/entities/Enemy.h
         src/entities/Missile.cpp
         src/entities/Missile.h
         src/physics/ContactListener.h
@@ -65,6 +61,8 @@ set(SOURCE_FILES src/main.cpp
         src/entities/PipeSwitch.h
         src/entities/GoalSensor.cpp
         src/entities/GoalSensor.h
+        src/entities/TutorialSign.cpp
+        src/entities/TutorialSign.h
 
 )
 
@@ -79,12 +77,12 @@ add_executable(${EXE_FILE} ${SOURCE_FILES})
 target_compile_features(${EXE_FILE} PRIVATE cxx_std_17)
 
 # link with dependencies
-target_link_libraries(${EXE_FILE} PRIVATE glad glfw glm soloud tinygltf box2d winmm)  # <-- now also links glfw. The library names are separated by spaces.
+target_link_libraries(${EXE_FILE} PRIVATE glad glfw glm soloud box2d winmm)  # <-- now also links glfw. The library names are separated by spaces.
 
 
 target_compile_definitions(${EXE_FILE} PRIVATE ASSET_ROOT=./assets/)
 
-# copy assets to output directory before build
 add_custom_command(TARGET ${EXE_FILE} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Copying assets..."
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${EXE_FILE}>/assets)

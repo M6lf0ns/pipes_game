@@ -107,6 +107,7 @@ namespace gl3 {
     }
     void Entity::onSensorEnter(Entity* other) {
 
+
     }
 
     void Entity::onSensorExit(Entity* other) {

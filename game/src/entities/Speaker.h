@@ -1,6 +1,5 @@
 #pragma once
 #include "Entity.h"
-#include "tiny_gltf/tiny_gltf.h"
 
 namespace gl3 {
     class Speaker: public Entity {
@@ -12,14 +11,24 @@ namespace gl3 {
         void StartNoise();
         void CeaseNoise();
         void update(Game *game, float deltaTime) override;
+        bool getIsActive() {return isActive;};
 
 
     protected:
         void createPhysicsBody() override;
 
     private:
+        float soundTimer = 0.0f;
+        const float SOUND_INTERVAL = 0.5f; // Play sound every 0.5 seconds
+        bool botEnteredWhileActive = false;
         Entity* currentTarget = nullptr;
         bool isActive = false;
+        std::vector<GLuint> speakerOnFrames;
+        GLuint speakerOffTexture;
+        int animFrame = 0;          // Which frame index are we currently showing?
+        float animTimer = 0.0f;     // Tracks time passed *within* the current frame
+        const float frameDuration = 0.1f; // How long each frame stays on screen (0.1s = 10 FPS)
+
 
 
 

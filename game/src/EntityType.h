@@ -21,7 +21,8 @@ namespace gl3 {
         LaserGuy,
         Mirror,
         MirrorCube,
-        GoalSensor
+        GoalSensor,
+        TutorialSign
     };
 
 }

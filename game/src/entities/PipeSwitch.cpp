@@ -2,6 +2,7 @@
 #include "../rendering/Texture.h"
 #include "box2d/box2d.h"
 #include <iostream>
+#include "../Game.h"
 
 #include "Ship.h"
 #include "../PhysicsCategories.h"
@@ -44,6 +45,13 @@ namespace gl3 {
         b2Shape_EnableSensorEvents(shape, true);
     }
 
+    void PipeSwitch::update(Game *game, float deltaTime) {
+        Entity::update(game, deltaTime);
+
+
+    }
+
+
     void PipeSwitch::onSensorEnter(Entity *other) {
         //std::cout << "[DEBUG] Sensor overlap detected!" << std::endl; // Add this!
     if (other && other->getType() == EntityType::Player) {
@@ -68,26 +76,16 @@ namespace gl3 {
         }
 
     }
-    void PipeSwitch::rotatePipe(float angleInDegrees) {
-        if (targetCube) {
-            targetCube->rotatePipe(angleInDegrees);
-        }
 
+
+    void PipeSwitch::flipSwitch(Game* game) {
+        if (!targetCube) return;
+        isOn = !isOn;
+        float nextAngle = std::fmod(targetCube->getPipeRotation() + 45.0f, 360.0f);
+        targetCube->rotatePipe(nextAngle, true);
+        game->PlaySfx(game->getFlipSwitchSFX(), 0.3f);
     }
-
-    void PipeSwitch::flipSwitch() {
-        if (!targetCube) {
-            std::cout << "CRITICAL ERROR: PipeSwitch has NO targetCube linked!" << std::endl;
-            return;
-        }
-        // isOn = !isOn;
-        // std::cout << "Switch is now: " << (isOn ? "ON" : "OFF") << std::endl;
-
-        targetCube->rotatePipe(targetCube->getPipeRotation());
-        std::cout << "PIPE WAS ROTATED" << std::endl;
-        // else targetCube->CeaseNoise();
     }
 
 
 
-}

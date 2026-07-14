@@ -51,16 +51,17 @@ namespace gl3 {
         // Create the dual physics bodies (This creates 'body' at 0 rotation initially)
         MirrorCube::createPhysicsBody();
         // --- SYNCHRONIZE INITIAL ROTATION ---
+        this->rotatePipe(rotationAngle, false);
 
 
-        // // Force call your update function to lock Box2D and the Sprite into position right now!
-        this->rotatePipe(rotationAngle);
         std::cout << "SET ROTATION AT: " <<  rotationAngle << std::endl;
 
     }
 
 
     void MirrorCube::update(Game *game, float deltaTime) {
+        Entity::update(game, deltaTime);
+        if (this->game == nullptr) this->game = game; // grab it once
     }
 
 
@@ -204,25 +205,16 @@ namespace gl3 {
 
 
 
-    void MirrorCube::rotatePipe(float angleInDegrees) {
-        // 1. ABSOLUTE SETTING: No +=, just =
+    void MirrorCube::rotatePipe(float angleInDegrees, bool playSound) {
         this->rotationAngle = angleInDegrees;
-        std::cout << "MIRRORCUBE RECEIVED ANGLE: " << angleInDegrees << std::endl;
-
-        // 2. CONVERSION: CCW Radians
         float radians = glm::radians(angleInDegrees);
-
-        // 3. TRANSFORM: Force absolute orientation
-        // Using b2Body_SetTransform resets the rotation entirely
         b2Vec2 bodyPos = b2Body_GetPosition(body);
         b2Body_SetTransform(body, bodyPos, b2MakeRot(radians));
-
-        // 4. VISUALS
         pipeSprite->setRotation(radians);
-        std::cout << "ROTATED PIPE TO ANGLE: " <<  angleInDegrees << std::endl;
-        b2AABB aabb = b2Shape_GetAABB(shape);
-    std::cout << "PIPE AABB: [" << aabb.lowerBound.x << "," << aabb.lowerBound.y
-              << "] to [" << aabb.upperBound.x << "," << aabb.upperBound.y << "]" << std::endl;
+
+        if (playSound && game != nullptr) {
+            game->PlaySfx(game->getPipeRotatedSFX());
+        }
     }
 }
 

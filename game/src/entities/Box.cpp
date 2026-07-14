@@ -131,10 +131,10 @@ namespace gl3 {
             playerToBoxX = boxPos.x - playerPosX;
             activePlayer->setPlayerToBox(playerToBoxX);
             float playerDir = activePlayer->getDirection();
-            std::cout << "PLAYER DIRECTION: " << playerDir << std::endl;
+            // std::cout << "PLAYER DIRECTION: " << playerDir << std::endl;
             // Check if player is facing the box
             bool facingBox = (playerDir > 0 && playerToBoxX > 0) || (playerDir < 0 && playerToBoxX < 0);
-            std::cout << "player facing box? " << facingBox << std::endl;
+            // std::cout << "player facing box? " << facingBox << std::endl;
 
             if (!facingBox) {
                 // Stop interaction:
@@ -154,9 +154,23 @@ namespace gl3 {
             // Determine if pushing or pulling (based on your existing logic)
             bool pushing = (playerVelX * playerToBoxX > 0); // moving toward box
             bool pulling = (playerVelX * playerToBoxX < 0); // moving away from box
+            if (pulling || pushing) {
+                // ONLY play if the cooldown has expired
+                if (soundCooldown <= 0.0f) {
+                    game->PlaySfx(game->getBoxPushPullSFX(), 0.5f);
+
+                    // Reset the cooldown to the duration of the sound
+                    soundCooldown = SFX_DURATION;
+                }
+            }
+
+            // Tick the cooldown timer down every frame
+            if (soundCooldown > 0.0f) {
+                soundCooldown -= deltaTime;
+            }
 
             if (pulling)
-            {
+                {
                 // PULLING: Use velocity matching PLUS a correction to close any gap.
 
                 // Target X position: Player position minus the ideal separation distance,
@@ -173,6 +187,7 @@ namespace gl3 {
                 float newVelX = playerVelX + positionError * PULL_CORRECTION_FACTOR;
 
                 b2Body_SetLinearVelocity(body, {newVelX, currentVel.y});
+
             }
             else if (pushing)
             {
@@ -180,6 +195,7 @@ namespace gl3 {
                 float smoothFactor = 15.0f;
                 float newVelX = currentVel.x + (playerVelX - currentVel.x) * smoothFactor * deltaTime;
                 b2Body_SetLinearVelocity(body, {newVelX, currentVel.y});
+
             }
 
             // Low friction for smooth movement

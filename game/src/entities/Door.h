@@ -12,6 +12,7 @@ namespace gl3 {
         explicit Door(Shader* shader, glm::vec3 position = glm::vec3(0,0,0), glm::vec3 scale = glm::vec3(0,0,0), b2WorldId physicsWorld = b2_nullWorldId);
         void draw(Game *game) override;
         void startContact(Entity* other) override;
+        void update(Game *game, float deltaTime) override;
         void openDoor();
         void closeDoor();
         float getHalfHeight();
@@ -24,6 +25,7 @@ namespace gl3 {
         void destroyPhysicsBody();
 
     private:
+        bool wasDoorOpen = false;
         GLuint openTex;
         GLuint closedTex;
         float halfWidth, halfHeight;

@@ -3,6 +3,8 @@
 #include "box2d/box2d.h"
 #include "box2d/types.h"
 #include <iostream>
+
+#include "../Game.h"
 #include "../PhysicsCategories.h"
 
 namespace gl3 {
@@ -49,7 +51,7 @@ namespace gl3 {
         // 2. Ensure contact events are enabled (Box2D sometimes needs this for static bodies)
         doorShapeDef.enableContactEvents = true;
         shape = b2CreatePolygonShape(body, &doorShapeDef, &doorShape);
-        b2Shape_SetFriction(shape, 0.5f);
+        b2Shape_SetFriction(shape, 0.0f);
 
         // ✅ ADDED: Set user data and enable events
         b2Shape_SetUserData(shape, this);
@@ -61,7 +63,20 @@ namespace gl3 {
     void Door::draw(Game *game) {
         Entity::draw(game);
     }
+    void Door::update(Game *game, float deltaTime) {
+        Entity::update(game, deltaTime);
 
+        // Only play if it just changed from CLOSED to OPEN
+        if (isDoorOpen && !wasDoorOpen) {
+            game->PlaySfx(game->getDoorOpenCloseSFX(), 0.3f);
+            wasDoorOpen = true; // IMPORTANT: Mark as played
+        }
+        // Handle the closing sound too if you want one
+        else if (!isDoorOpen && wasDoorOpen) {
+            game->PlaySfx(game->getDoorOpenCloseSFX(), 0.3f);
+            wasDoorOpen = false; // IMPORTANT: Mark as played
+        }
+    }
 
 
     void Door::openDoor() {
@@ -75,7 +90,8 @@ namespace gl3 {
 
         isDoorOpen = true;
         sprite->setTexture(openTex);
-        // ... your nudge logic ...
+        wasDoorOpen = false;
+
     }
 
     void Door::closeDoor() {
@@ -93,6 +109,8 @@ namespace gl3 {
         b2Shape_SetFilter(shape, closedFilter);
 
         isDoorOpen = false;
+        wasDoorOpen = true;
+
         sprite->setTexture(closedTex);
         sprite->setPosition(glm::vec3(position.x, position.y, 0.0f));
     }

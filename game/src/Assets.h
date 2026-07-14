@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 namespace gl3 {
     inline fs::path resolveAssetPath(const fs::path &relativeAssetPath) {
-        auto mergedPath = (GET_DIR(ASSET_ROOT) / relativeAssetPath).make_preferred();
-        return fs::canonical(mergedPath);
+        auto mergedPath = (fs::path(GET_DIR(ASSET_ROOT)) / relativeAssetPath).make_preferred();
+        return mergedPath; // no canonical, no crash
     }
 }

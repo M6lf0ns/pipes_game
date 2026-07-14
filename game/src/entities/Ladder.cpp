@@ -57,17 +57,18 @@ namespace gl3 {
     }
 
     void Ladder::onSensorEnter(Entity* other) {
-        if (other->getType() == EntityType::Player) {
+        if (other && other->getType() == EntityType::Player) {
             Ship* player = static_cast<Ship*>(other);
             player->setCanClimb(true);
             player->setCurrentLadder(this);
+            std::cout << "we are entering ladder player sensor code " << std::endl;
 
 
         }
     }
 
     void Ladder::onSensorExit(Entity* other) {
-        if (other->getType() == EntityType::Player) {
+        if (other && other->getType() == EntityType::Player) {
             Ship* player = static_cast<Ship*>(other);
             player->setCanClimb(false);
             player->setCurrentLadder(nullptr);

@@ -1,5 +1,7 @@
 #pragma once
 #include "Entity.h"
+#include "Floor.h"
+#include "soloud.h"
 #include "Vent.h"
 #include "box2d/src/physics_world.h"
 
@@ -23,12 +25,30 @@ namespace gl3 {
         void setFloorID(int floorId) {this->floorID = floorId;};
         void setLocalStickFloorID(int stickID) {targetFloorID = stickID;};
         int getFloorID() const override {return floorID;};
+        bool getOnWrongFloor() {return onWrongFloor;}
+        void setStickWasThrown(bool isThrown) {this->stickWasThrown = isThrown;};
+        bool getDogHasTeleported() {return dogHasTeleported;};
+        void setDogHasTeleported(bool hasTPd) {this->dogHasTeleported = hasTPd;};
+        void resetDogState();
+        void setStickInVent (bool inVent) {this->stickInVent = inVent;};
+        bool getStickInVent() {return stickInVent;};
+        void resetVents() {
+            this->setEntryVent(nullptr);
+            this->setExitVent(nullptr);
+
+        }
 
 
     protected:
         void createPhysicsBody() override;
 
     private:
+        SoLoud::handle walkSoundHandle = 0;
+        bool isNavigatingVent = false;
+
+        bool stickInVent = false;
+        bool dogHasTeleported = false;
+        bool onWrongFloor = false;
         int floorID;
         bool isWalking = false;
         GLuint idleTexture;
@@ -40,9 +60,11 @@ namespace gl3 {
         int targetFloorID = 0;
         static float dogRadius;
         bool stickHasLanded = false;
+        bool stickWasThrown = false;
         Vent* enVent = nullptr;
         Vent* exVent = nullptr;
         bool isVisible = true;
+        Floor* floor = nullptr;
 };
 
 };

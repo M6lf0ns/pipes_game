@@ -19,6 +19,7 @@ namespace gl3 {
         Vent* getConnectedTwin() { return connectedTwin; }
         void initConnectedTwin(Vent* twin);
         void setStick(Stick* stick) {correspStick = stick; }
+        bool getIsExit() {return isExit;}
 
     protected:
         void createPhysicsBody() override;

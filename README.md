@@ -16,7 +16,7 @@
 
 ### Abstract
 
-`Life after humanity is hard, as the only sentient being left on earth you are forced to navigate the factory that was supposed to take your consciousness, while mindless, fellow robots try to stop you. Will you succeed? `
+Life after humanity is hard, as the only sentient being left on earth you are forced to solve puzzles trying to escape the factory that was supposed to take your consciousness, while mindless, fellow robots try to stop you. Will you succeed? 
 
 `--- 8< --- READ, THEN REPLACE WITH CUSTOM CONTENT BELOW HERE --- 8< ---`
 
@@ -41,7 +41,22 @@ RepositoryRoot/
     ├── report/             // PDF
     └── trailer/            // .mp4 (final trailer, no raw material)
 ```
+##Trailer
 
+##Hardware Requirements
+
+PC, Keyboard, Mouse, Audio output device
+
+##How to execute game:
+
+1. Extract files from zip-file
+2. Open the "Pipes" executable
+
+##Used Assets
+
+
+
+``
 ### Project and Source Control
 
 Read more about Git in the [Atlassian Git Tutorials](https://de.atlassian.com/git).
