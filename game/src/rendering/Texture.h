@@ -3,16 +3,22 @@
 #include <string>
 
 namespace gl3 {
-class Texture {
+    /// @class Texture
+    /// @brief Handles loading and management of OpenGL texture resources.
+    class Texture {
 
-public:
+    public:
+        /// @brief Loads a texture from an image file into OpenGL memory.
+        ///
+        /// This function handles the file I/O, texture parameter setup,
+        /// and generation of the OpenGL texture ID.
+        ///
+        /// @param path The file system path to the image file (e.g., .png or .jpg).
+        /// @return The generated OpenGL texture ID.
+        static GLuint LoadTexture(const std::string& path);
 
-    static GLuint LoadTexture(const std::string& path);
+        int texWidth;  ///< The width of the loaded texture in pixels.
+        int texHeight; ///< The height of the loaded texture in pixels.
 
-
-    int texWidth, texHeight;
-
-};
-};
-
-
+    };
+}
