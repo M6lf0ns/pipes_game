@@ -579,19 +579,39 @@ namespace gl3 {
     }
     else {
         // --- 5. NORMAL ACTIVE GAMEPLAY RENDERING BLOCK ---
-        // Clear old frame buffers entirely so menu imagery completely vanishes!
-        // glClearColor(0.172f, 0.243f, 0.313f, 1.0f);
-        glClearColor(0.13f, 0.18f, 0.24f, 1.0f);
+        glClearColor(0.4f, 0.5f, 0.6f, 1.0f); // darker purple
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glBindVertexArray(0);
-        glEnable(GL_DEPTH_TEST);
+        // 1. DRAW THE OVERLAY FIRST (It now acts as a 'tint' on the background)
+        // We draw this before the scene so it sits between the background and the entities
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        spriteShader->use();
+        spriteShader->setBool("useTexture", false); // Solid color mode
+
+        static gl3::Sprite* bgOverlay = nullptr;
+        if (bgOverlay == nullptr) {
+            // Use an existing valid texture ID if your Sprite class requires one, or 0 if it handles it
+            bgOverlay = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(8.0f, 4.0f, 1.0f), 0);
+        }
+
+        // Set black color with 0.3 alpha (30% darkness)
+        bgOverlay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.55f));
+
+        // Draw the overlay
+        glm::mat4 overlayMvp = calculateUIMvPMatrix(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(8.0f, 4.0f, 1.0f));
+        bgOverlay->draw(*spriteShader, overlayMvp);
+
+        // 2. NOW DRAW THE SCENE (Entities rendered ON TOP of the darkness)
+        glEnable(GL_DEPTH_TEST);
         if (currentScene) {
             currentScene->draw();
         }
 
         glfwSwapBuffers(window);
+
     }
 }
     void Game::InitAudio() {
