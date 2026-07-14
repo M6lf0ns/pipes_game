@@ -20,9 +20,11 @@ namespace gl3 {
 
     void Scene::loadLevelData(const std::string &levelName, b2WorldId world) {
         entities.clear();
+        allVents.clear();
 
         load(world);
 
+        std::cout << "Working Directory: " << std::filesystem::current_path() << std::endl;
         std::ifstream file(levelName);
         if (!file.is_open()) {
             std::cout << "ERROR: Could not open level file at " << levelName << std::endl;
@@ -120,7 +122,8 @@ namespace gl3 {
                     if (ventPtr != nullptr) {
                         allVents.push_back(ventPtr);
                     }
-
+                } else if (type == "TutorialSign") {
+                    entities.push_back(std::make_unique<TutorialSign>(spriteShader.get(), pos, scale,linkID, world));
 
                 }
                 else if (type == "GoalSensor") {
@@ -133,12 +136,41 @@ namespace gl3 {
 
         }
 
-        // Inside Scene.cpp right after file loading finishes:
+        // Find the dog first
+        Dog *levelDog = nullptr;
+        for (auto &entity : entities) {
+            if (entity->getType() == EntityType::Dog) {
+                levelDog = static_cast<Dog *>(entity.get());
+                break;
+            }
+        }
+        for(auto* v : allVents) {
+            if (v == nullptr) {
+                std::cout << "[CRITICAL] Found a NULL vent in registry!" << std::endl;
+            }
+        }
+
+        // In Scene.cpp, after loading entities:
         for (auto* ventA : allVents) {
-            for (auto* ventB : allVents) {
-                if (ventA != ventB && ventA->getVentId() == ventB->getVentId()) {
-                    // Use the helper method to link them safely
-                    ventA->initConnectedTwin(ventB);
+            if (!ventA->getIsExit()) { // We are looking at an Entrance
+                for (auto* ventB : allVents) {
+                    if (ventB->getIsExit() && ventA->getVentId() == ventB->getVentId()) {
+                        ventA->initConnectedTwin(ventB);
+                        std::cout << "[DEBUG] Linking Entry ID " << ventA->getVentId()
+                                  << " (" << ventA << ") to Exit " << ventB << std::endl;
+                    }
+                }
+            }
+        }
+        // Now, use your already populated 'allVents' vector
+        if (levelDog) {
+            for (Vent* v : allVents) {
+                if (!v->getIsExit()) {
+                    levelDog->setEntryVent(v);
+                    // Since we linked the twins earlier in the function,
+                    // the dog's exVent is now automatically the twin!
+                    levelDog->setExitVent(v->getConnectedTwin());
+                    std::cout << "[LINKER] Dog linked to Entry: " << v << " and Exit: " << v->getConnectedTwin() << std::endl;
                 }
             }
         }
@@ -190,14 +222,16 @@ namespace gl3 {
         // --- ENTITY HANDSHAKE FENCING ---
         Ship *playerShip = nullptr;
         Stick *playerStick = nullptr;
-        Dog *levelDog = nullptr;
+
         Speaker *speaker = nullptr;
         SpeakerSwitch *speakerSwitch = nullptr;
         SecBot *secBot = nullptr;
 
+
         std::cout << "[DEBUG] Searching for handshake entities... " << std::flush;
         for (auto &entity: entities) {
             if (!entity) continue;
+
             if (entity->getType() == EntityType::Player) playerShip = static_cast<Ship *>(entity.get());
             if (entity->getType() == EntityType::Stick) playerStick = static_cast<Stick *>(entity.get());
             if (entity->getType() == EntityType::Dog) levelDog = static_cast<Dog *>(entity.get());
@@ -236,7 +270,15 @@ namespace gl3 {
             std::cout << "SUCCESS" << std::endl;
         }
 
+
+        doorMap.clear();
+        switchMap.clear();
+        mirrorCubeMap.clear();
+        pipeSwitchMap.clear();
+
+
         std::cout << "[DEBUG] loadLevelData FINISHED SUCCESSFULLY" << std::endl;
+
     }
 
 
@@ -264,6 +306,10 @@ namespace gl3 {
         while (accumulator >= fixedTimeStep) {
             // 1. Step the world
             b2World_Step(game->getPhysicsWorld(), fixedTimeStep, subStepCount);
+            if (game->getIsResetting()) {
+                accumulator = 0.0f; // drain remaining time so next frame starts fresh
+                return;
+            }
 
             // 2. FETCH EVENTS IMMEDIATELY AFTER STEP
             b2ContactEvents contactEvents = b2World_GetContactEvents(game->getPhysicsWorld());
@@ -272,12 +318,16 @@ namespace gl3 {
             for (int i = 0; i < contactEvents.beginCount; ++i) {
                 b2ContactBeginTouchEvent *beginEvent = contactEvents.beginEvents + i;
                 // Access your Game's helper or do it directly:
+                if (!b2Shape_IsValid(beginEvent->shapeIdA)) continue;
+                if (!b2Shape_IsValid(beginEvent->shapeIdB)) continue;
                 game->ShapesStartTouching(beginEvent->shapeIdA, beginEvent->shapeIdB);
             }
 
             // Handle end contacts too so activePlayer becomes null when you walk away
             for (int i = 0; i < contactEvents.endCount; ++i) {
                 b2ContactEndTouchEvent *endEvent = contactEvents.endEvents + i;
+                if (!b2Shape_IsValid(endEvent->shapeIdA)) continue;
+                if (!b2Shape_IsValid(endEvent->shapeIdB)) continue;
                 game->ShapesStopTouching(endEvent->shapeIdA, endEvent->shapeIdB);
             }
 
@@ -288,6 +338,7 @@ namespace gl3 {
                 std::cout << "ARE WE EVEN DOING ANYTHING????" << std::endl;
                 b2SensorBeginTouchEvent *beginEvent = sensorEvents.beginEvents + i;
                 if (!b2Shape_IsValid(beginEvent->sensorShapeId)) continue;
+                if (!b2Shape_IsValid(beginEvent->visitorShapeId)) continue;
 
                 std::cout << "BEFORE CALLING SENSORSSTARTSENSING" << std::endl;
                 std::cout << sensorEvents.beginCount << std::endl;
@@ -296,7 +347,10 @@ namespace gl3 {
 
             for (int i = 0; i < sensorEvents.endCount; ++i) {
                 b2SensorEndTouchEvent *endEvent = sensorEvents.endEvents + i;
+                if (!b2Shape_IsValid(endEvent->sensorShapeId)) continue;
+                if (!b2Shape_IsValid(endEvent->visitorShapeId)) continue;
                 game->SensorStopsSensing(endEvent->sensorShapeId, endEvent->visitorShapeId);
+
             }
 
 

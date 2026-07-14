@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "../physics/PhysicsUtils.h"
 
+
 namespace gl3 {
 
     class MirrorCube: public Entity {
@@ -11,10 +12,11 @@ namespace gl3 {
         void draw(Game *game) override;
         void update(Game *game, float deltaTime) override;
         RayCastResult castRay(b2Vec2 reflectionVec, b2Vec2 hitPoint);
-        void rotatePipe (float angleInDegrees);
+        void rotatePipe (float angleInDegrees, bool playSound);
         float getPipeRotation() { return this->rotationAngle; }
         void setPipeRotation(int angle) { this->rotationAngle = angle; };
         float getPipeHalfWidth() { return this->pipeHalfWidth; }
+        void setPipeRotated (bool rotated) {pipeRotated = rotated;}
         Sprite* getPipeSprite() {
             return this->pipeSprite;
         }
@@ -28,6 +30,9 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        Game* game = nullptr;
+        bool pipeRotated = false;
+        bool wasPipeRotated = false;
         int floorID;
         int linkID;
         float halfWidth, halfHeight;

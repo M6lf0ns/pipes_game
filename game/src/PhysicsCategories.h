@@ -28,6 +28,8 @@ namespace gl3 {
         static const FilterCategory CATEGORY_MIRROR_BACKDROP= 0x0000000020000000ULL;
         static const FilterCategory CATEGORY_MIRROR_PIPE = 0x0000000040000000ULL;
         static const FilterCategory CATEGORY_GOAL_SENSOR = 0x0000000080000000ULL;
+      static const FilterCategory CATEGORY_TUTORIAL_SIGN = 0x0000000001000000ULL;
+
         // ... all other CATEGORY constants ...
 
         // A convenient mask that includes ALL physical bodies (for general collision checks)

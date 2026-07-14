@@ -45,9 +45,10 @@ namespace gl3 {
         // std::cout << "IS DAWG BEING SET??" << dawg << std::endl;
 
         // std::cout << "FLOOR ID OF STICK IS " << floorID << std::endl;
-        if (dawg) {
-            dawg->setLocalStickFloorID(this->getFloorID());
-        }
+        // if (dawg) {
+        //     dawg->setLocalStickFloorID(this->getFloorID());
+        // }
+
         if (isFollowingPlayer) {
             b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
             b2Body_SetAngularVelocity(body, 0.0f);
@@ -71,9 +72,17 @@ namespace gl3 {
         b2Vec2 vel = b2Body_GetLinearVelocity(body);
         float angularVel = b2Body_GetAngularVelocity(body);
 
+        if (std::abs(vel.y) < 0.8f && std::abs(angularVel) < 2.0f) {
+            if (!landSoundPlayed) {
+                SoLoud::handle h = game->PlaySfxWithHandle(game->getPipeLandSFX(), 0.5f);
+                game->getAudio().setRelativePlaySpeed(h, 0.5f);
+                landSoundPlayed = true;
+            }
+        }
         // 2. Threshold Check: Is it slow enough to "land"?
         // If it's falling (vel.y) or spinning (angularVel) fast, SKIP THIS.
         if (std::abs(vel.y) < 0.2f && std::abs(angularVel) < 0.8f) {
+
 
             // 3. Pick the closest flat angle (0 or 180)
             float snapAngle = (std::abs(zRotation) > 90.0f) ? 180.0f : 0.0f;
@@ -88,10 +97,21 @@ namespace gl3 {
             // 6. CRITICAL: Turn off the flag so this block stops running!
             hasBeenThrown = false;
             hasLanded = true;
+
             if (dawg != nullptr) {
                 dawg->setStickHasLanded(hasLanded);
-                dawg->setTargetLocation(this->getPosition());
                 dawg->setLocalStickFloorID(this->getFloorID());
+
+                dawg->setTargetLocation(this->getPosition());
+                //
+                // if (dawg->getOnWrongFloor() && dawg->getEntryVent() == nullptr && dawg->getExitVent() == nullptr) {
+                //     std::cout << "ON WRONG FLOOR" << std::endl;
+                //
+                // }else {
+                //     std::cout << "ON WRONG FLOOR AND VENTS EXIST" << std::endl;
+                // }
+                //
+
 
             }
 
@@ -195,6 +215,7 @@ namespace gl3 {
 
         isFollowingPlayer = false; // Stop tracking player coordinates
         hasLanded = false;
+        landSoundPlayed = false;
         isVisible = true;          // Make it reappear flying
 
         if (b2Body_IsValid(body)) {
@@ -215,6 +236,9 @@ namespace gl3 {
         }
 
         hasBeenThrown = true;
+        if (dawg != nullptr) {
+            dawg->setStickWasThrown(true);
+        }
     }
 
     void Stick::drawTrajectory(Game *game) {
@@ -277,6 +301,7 @@ namespace gl3 {
         hasLanded = false;
         isVisible = false; // Make it vanish
 
+
         // Disable the physics body entirely so it stops simulating
         if (b2Body_IsValid(body)) {
             b2Body_Disable(body);
@@ -287,26 +312,29 @@ namespace gl3 {
         isFollowingPlayer = false;
         hasBeenThrown = false;
         hasLanded = false;
-        isVisible = true; // Make it reappear
+        isVisible = true;
 
         if (b2Body_IsValid(body)) {
             b2Body_Enable(body);
-
-            // Spawn it right at the player's position coordinates
-            b2Rot zeroRot = b2MakeRot(0.0f);
-            b2Body_SetTransform(body, {pos.x, pos.y}, zeroRot);
-
-
-            // Give it a tiny, clean drop velocity
+            b2Body_SetTransform(body, {pos.x, pos.y}, b2MakeRot(0.0f));
             b2Body_SetLinearVelocity(body, {direction * 0.3f, 0.0f});
-            b2Body_SetAngularVelocity(body, 0.0f);
             b2Body_SetAwake(body, true);
             this->setPosition(pos);
-            if (dawg != nullptr) {
-                dawg->setTargetLocation(this->getPosition());
-                dawg->setLocalStickFloorID(this->getFloorID());
-            }
 
+            if (dawg != nullptr) {
+                // ONLY set target if it's a teleport or throw.
+                // If it's just a player drop, we ignore it.
+                if (wasTeleporting || hasBeenThrown) {
+                    dawg->setTargetLocation(this->getPosition());
+                std::cout << "STICK POS IS RN " << this->getPosition().x << " " << this->getPosition().y << std::endl;
+                } else {
+                    // dawg->setStickWasThrown(false);
+                    // If it's a manual drop, force the dog to stop chasing
+                    dawg->setTargetLocation(dawg->getPosition());
+
+                }
+                wasTeleporting = false;
+            }
         }
     }
 
@@ -320,7 +348,12 @@ namespace gl3 {
 
     void Stick::teleport(Game* game, glm::vec3 correspVentPos) {
         isVisible = true;
+        wasTeleporting =  true;
         this->dropStick(correspVentPos, 1.0f);
+        if (dawg != nullptr) {
+            dawg->setStickWasThrown(false);
+            dawg->setStickInVent(true);
+        }
         isTimerActive = true;
         maxTime = 1.5f;
     }

@@ -39,7 +39,7 @@ namespace gl3 {
         // 2. Create the Shape (The "Ghost" Trigger)
         // Make it narrow so the triangle-ship tip has to be centered.
         // Make it thin so the box is definitely "on" it before it fires.
-        float sensorWidth = 0.05f; // 30% of the sprite width
+        float sensorWidth = 0.04f; // 30% of the sprite width
         float sensorHeight = 0.05f;           // Very thin
         b2Polygon sensorBox = b2MakeBox(sensorWidth, sensorHeight);
 

@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "Ship.h"
+#include "../Game.h"
 #include "../PhysicsCategories.h"
 
 namespace gl3 {
@@ -44,6 +45,21 @@ namespace gl3 {
         b2Shape_EnableSensorEvents(shape, true);
     }
 
+    void SpeakerSwitch::update(Game *game, float deltaTime) {
+        Entity::update(game, deltaTime);
+
+        // Trigger only when flipping from OFF to ON
+        if (isOn && !wasOn) {
+            game->PlaySfx(game->getFlipSwitchSFX());
+            wasOn = true;
+        }
+        // Trigger when flipping from ON to OFF
+        else if (!isOn && wasOn) {
+            game->PlaySfx(game->getFlipSwitchSFX(), 0.3f);
+            wasOn = false;
+        }
+    }
+
     void SpeakerSwitch::onSensorEnter(Entity *other) {
         //std::cout << "[DEBUG] Sensor overlap detected!" << std::endl; // Add this!
     if (other && other->getType() == EntityType::Player) {
@@ -73,13 +89,17 @@ namespace gl3 {
             std::cout << "CRITICAL ERROR: SpeakerSwitch has NO targetSpeaker linked!" << std::endl;
             return;
         }
+
+        // Toggle the state
         isOn = !isOn;
+
+
+
         std::cout << "Switch is now: " << (isOn ? "ON" : "OFF") << std::endl;
 
         if (isOn) targetSpeaker->StartNoise();
         else targetSpeaker->CeaseNoise();
     }
-
 
 
 }

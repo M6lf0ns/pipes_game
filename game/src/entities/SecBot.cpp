@@ -51,112 +51,124 @@ namespace gl3 {
     }
 
 
-    void SecBot::update(Game *game, float deltaTime) {
-        if (game->getIsGameOver() || isFrozen || !ship) {
-            std::cout << "SECBOT CANT FIND SHIP" << std::endl;
-            return;
-        }
-
-        animTimer += deltaTime;
-        if (animTimer >= 0.03f) { // Your frame speed
-            animTimer = 0.0f;
-            if (currentState == Botstate::patrol) {
-                animFrame = (animFrame + 1) % patrolFrames.size();
-                this->sprite->setTexture(patrolFrames[animFrame]);
-
-            }
-            else if (currentState == Botstate::chase) {
-                animFrame = (animFrame + 1) % chaseFrames.size();
-                this->sprite->setTexture(chaseFrames[animFrame]);
-
-            } else if (currentState == Botstate::search) {
-                animFrame = (animFrame + 1) % searchFrames.size();
-                this->sprite->setTexture(searchFrames[animFrame]);
-            }
-
-
-        }
-
+   void SecBot::update(Game *game, float deltaTime) {
+    if (game->getIsGameOver() || !ship || isFrozen) {
+        return;
+    }
+        // std::cout << "WE ARE AT ADDRESS" << this << std::endl;
+        // std:: cout << "ARE WE FUCKING FROZEN " << isFrozen << std::endl;
+        if (contactCooldown > 0.0f) contactCooldown -= deltaTime;
         Entity::update(game, deltaTime);
 
 
+            // 1. Animationen
+            animTimer += deltaTime;
+            if (animTimer >= 0.03f) {
+                animTimer = 0.0f;
 
-        float dist = glm::distance(ship->getPosition(), this->getPosition());
-        // if (currentState == Botstate::chase && dist < 0.3f) {
-        //     ship->kill(game);
-        //
-        // } COMMENT BACK IN LATER
-        if (currentState == Botstate::patrol && isTurning) {
-            timeRemainingBeforeTurn -= deltaTime;
-            b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
-            if (timeRemainingBeforeTurn <= 0.0f) flipSpriteDirection();
-            return;
-        }
-
-        castRay();
-        checkForGroundAhead();
-
-
-
-        // Only chase if on the same floor AND spotted
-        if (((playerSpotted && !isViewBlocked) || ((dist <= 1.5f)) && canReachPlayer())) {
-            currentState = Botstate::chase;
-            lastKnownX = ship->getPosition().x;
-        } else if (currentState == Botstate::chase) {
-            if (isViewBlocked || !canReachPlayer() || !playerSpotted) {
-                currentState = Botstate::search; // Lost them
-                forgetTimer = 0.0f;
+                if (currentState == Botstate::patrol) {
+                    animFrame = (animFrame + 1) % patrolFrames.size();
+                    this->sprite->setTexture(patrolFrames[animFrame]);
+                } else if (currentState == Botstate::chase) {
+                    animFrame = (animFrame + 1) % chaseFrames.size();
+                    this->sprite->setTexture(chaseFrames[animFrame]);
+                } else if (currentState == Botstate::search) {
+                    animFrame = (animFrame + 1) % searchFrames.size();
+                    this->sprite->setTexture(searchFrames[animFrame]);
+                }
             }
 
+
+
+
+    // 2. Kill-Logik
+    float dist = glm::distance(ship->getPosition(), this->getPosition());
+    if (currentState == Botstate::chase && dist < 0.5f) {
+        ship->kill(game);
+    }
+
+    // 3. Turn/Wait Logik
+    if (isTurning) {
+        timeRemainingBeforeTurn -= deltaTime;
+        b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
+        if (timeRemainingBeforeTurn <= 0.0f) {
+            if (currentState == Botstate::chase) {
+                currentState = Botstate::search;
+                forgetTimer = 0.0f;
+            } else if (currentState == Botstate::patrol) {
+                flipSpriteDirection();
+            }
+            isTurning = false;
         }
-        bool isGroundAhead = checkForGroundAhead();
+        return;
+    }
+
+    // 4. Sensoren
+    castRay();
+    isGroundAhead = checkForGroundAhead();
 
 
+    // 5. Zustandsübergänge
+    if (((playerSpotted && !isViewBlocked) || (dist <= 1.5f)) && canReachPlayer() && !isSpeakerAhead) {
+        currentState = Botstate::chase;
+        if (!soundPlayed) {
+            game->PlaySfx(game->getPlayerSpottedSFX(), 0.2f);
+            soundPlayed = true;
+        }
 
+        lastKnownX = ship->getPosition().x;
+    } else if (currentState == Botstate::chase) {
+        if (isViewBlocked || !canReachPlayer() || !playerSpotted || isSpeakerAhead) {
+            currentState = Botstate::search;
+            forgetTimer = 0.0f;
+            soundPlayed = false;
+        }
+    }
 
-        // std::cout << "[DEBUG] Current State: " << (int)currentState
-        //           << " | Spotted: " << playerSpotted
-        // << " | View Blocked: " << isViewBlocked
-        //           << " | CanReach: " << canReachPlayer() << std::endl;
-        // --- MOVEMENT LOGIC ---
-        if (currentState == Botstate::chase) {
+    // 6. Bewegungs-Logik mit "Virtueller Stoßstange"
+    float currentVelX = b2Body_GetLinearVelocity(body).x;
+    bool isBlocked = (std::abs(currentVelX) < 0.1f && std::abs(b2Body_GetLinearVelocity(body).y) < 0.1f);
+
+    if (currentState == Botstate::chase) {
+        if (isGroundAhead && !isSpeakerAhead) {
             float dir = (ship->getPosition().x < position.x) ? -1.0f : 1.0f;
             patrolDirection = dir;
             sprite->setScale({dir * abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z});
-
-            float velErr = ((PATROL_SPEED * 1.5f) * dir) - b2Body_GetLinearVelocity(body).x;
-            // Constant speed (1.5x patrol speed)
             b2Body_SetLinearVelocity(body, {dir * (PATROL_SPEED * 1.5f), b2Body_GetLinearVelocity(body).y});
-        }
-        else if (currentState == Botstate::patrol) {
-            if (isGroundAhead) {
-                flipSpriteDirection();
-            }
-            float velErr = (PATROL_SPEED * patrolDirection) - b2Body_GetLinearVelocity(body).x;
-            b2Body_SetLinearVelocity(body, {patrolDirection * PATROL_SPEED, b2Body_GetLinearVelocity(body).y});
-        }
-        else if (currentState == Botstate::search) {
-            forgetTimer += deltaTime;
-            // Move toward the saved lastKnownPosition
-            float dir = (lastKnownX < position.x) ? -1.0f : 1.0f;
-
-            // Only move if we aren't already at the location
-            if (std::abs(position.x - lastKnownX) > 0.2f && !isGroundAhead) {
-                patrolDirection = dir;
-                sprite->setScale({dir * abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z});
-
-                float velErr = (PATROL_SPEED * dir) - b2Body_GetLinearVelocity(body).x;
-                b2Body_SetLinearVelocity(body, {dir * PATROL_SPEED, b2Body_GetLinearVelocity(body).y});
-            } else {
-                b2Body_SetLinearVelocity(body, {0.0f, b2Body_GetLinearVelocity(body).y});
-            }
-
-            if (forgetTimer >= 3.0f) {
-                currentState = Botstate::patrol;
-                forgetTimer = 0.0f;
-            }
+        } else {
+            b2Body_SetLinearVelocity(body, {0.0f, b2Body_GetLinearVelocity(body).y});
         }
     }
+    else if (currentState == Botstate::patrol) {
+        if (!isGroundAhead || isSpeakerAhead) {
+            if (!isTurning) {
+                isTurning = true;
+                timeRemainingBeforeTurn = turnTimer;
+                b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
+            }
+        } else {
+            b2Body_SetLinearVelocity(body, {patrolDirection * PATROL_SPEED, b2Body_GetLinearVelocity(body).y});
+        }
+    }
+    else if (currentState == Botstate::search) {
+        forgetTimer += deltaTime;
+        float dir = (lastKnownX < position.x) ? -1.0f : 1.0f;
+
+        if (std::abs(position.x - lastKnownX) > 0.2f && isGroundAhead && !isSpeakerAhead && !isBlocked) {
+            patrolDirection = dir;
+            sprite->setScale({dir * abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z});
+            b2Body_SetLinearVelocity(body, {dir * PATROL_SPEED, b2Body_GetLinearVelocity(body).y});
+        } else {
+            b2Body_SetLinearVelocity(body, {0.0f, b2Body_GetLinearVelocity(body).y});
+        }
+        if (forgetTimer >= 3.0f) {
+            currentState = Botstate::patrol;
+            forgetTimer = 0.0f;
+            isTurning = false;
+            flipSpriteDirection(); // flip immediately so it walks away from whatever it was facing
+        }
+    }
+}
     void SecBot::createPhysicsBody() {
 
         // 1. Calculate the Radius (0.5m)
@@ -184,9 +196,9 @@ namespace gl3 {
                                   gl3::PhysicsCategories::CATEGORY_WALL |
                                   gl3::PhysicsCategories::CATEGORY_BOX |
                                       gl3::PhysicsCategories::CATEGORY_DOOR |
-                                          gl3::PhysicsCategories::CATEGORY_SPEAKER |
                                               gl3::PhysicsCategories::CATEGORY_PLAYER |
-                                              gl3::PhysicsCategories::CATEGORY_SWITCH;
+                                              gl3::PhysicsCategories::CATEGORY_SWITCH |
+                                                  gl3::PhysicsCategories::CATEGORY_SPEAKER;
 
         // 5. Create and Attach the Shape (THE CRASH POINT)
         shape = b2CreateCircleShape(
@@ -222,57 +234,54 @@ namespace gl3 {
 
 
     void SecBot::startContact(Entity* other) {
-        std::cout << "[DEBUG] Contact with: " << (int)other->getType() << std::endl;
-        if (!isTurning) isTurning = true;
-        timeRemainingBeforeTurn = turnTimer;
-
-        // STOP the bot during turn
-        b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
-
+        if (isFrozen) return;
+        if (contactCooldown > 0.0f) return; // ignore contact during cooldown
+        if (other->getType() == EntityType::Wall || other->getType() == EntityType::Door || other->getType() == EntityType::Box) {
+            if (!isTurning) {
+                isTurning = true;
+                timeRemainingBeforeTurn = turnTimer;
+                b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
+            }
+        }
     }
 
     void SecBot::flipSpriteDirection() {
         patrolDirection = patrolDirection > 0 ? -1 : 1;
-        std::cout << patrolDirection << std::endl;
         sprite->setScale(glm::vec3(patrolDirection * abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
         isTurning = false;
         timeRemainingBeforeTurn = turnTimer;
+        contactCooldown = 0.5f; // half second grace period after flipping
     }
 
     void SecBot::castRay() {
+        if (isFrozen) return;
         b2Vec2 botPosi = b2Body_GetPosition(body);
+        b2Vec2 origin = {botPosi.x, botPosi.y + 0.2f};
+        b2Vec2 end = {origin.x + (patrolDirection * 0.5f), origin.y};
 
-        // Setup coordinates specific to SecBot
-        float eyeOffset = 0.2f;
-        b2Vec2 origin = {botPosi.x, botPosi.y + eyeOffset};
-        b2Vec2 end = {origin.x + (patrolDirection * 1.5f), origin.y};
-
-        // Specify what the ray is and what it looks for
-        uint64_t category = gl3::PhysicsCategories::CATEGORY_RAY_SENSOR;
         uint64_t mask = gl3::PhysicsCategories::CATEGORY_PLAYER |
                         gl3::PhysicsCategories::CATEGORY_WALL |
-                        gl3::PhysicsCategories::CATEGORY_DOOR |
-                        gl3::PhysicsCategories::CATEGORY_BOX;
+                        gl3::PhysicsCategories::CATEGORY_SPEAKER;
 
-        // Call the global helper!
-        RayCastResult result = PhysicsUtils::CastRay(physicsWorld, origin, end, mask, category);
+        RayCastResult result = PhysicsUtils::CastRay(physicsWorld, origin, end, mask, gl3::PhysicsCategories::CATEGORY_RAY_SENSOR);
 
-        // Handle SecBot's specific state reactions
         if (result.didHit && result.hitEntity) {
             if (result.hitEntity->getType() == EntityType::Player) {
                 playerSpotted = true;
                 isViewBlocked = false;
-                // std::cout << "PLAYER SPOTTED" << std::endl;
-            } else {
-                if (result.hitEntity->getType() == EntityType::Wall) {
-                    // std::cout << "WALL SPOTTED" << std::endl;
-                }
+            } else if (result.hitEntity->getType() == EntityType::Wall) {
                 playerSpotted = false;
                 isViewBlocked = true;
+            } else if (result.hitEntity->getType() == EntityType::Speaker) {
+                Speaker* spk = static_cast<Speaker*>(result.hitEntity);
+                // Wenn Speaker aktiv -> Wand!
+                std::cout << "SPEAKER SPOTTED" << std::endl;
+                isSpeakerAhead = spk->getIsActive();
             }
         } else {
             playerSpotted = false;
             isViewBlocked = false;
+            isSpeakerAhead = false; // Zurücksetzen, wenn nichts getroffen
         }
     }
 
@@ -282,9 +291,9 @@ namespace gl3 {
 
         // 1. Set up the origin and end points exactly as you had them
 
-        b2Vec2 origin = {botPos.x + (patrolDirection * 0.5f), botPos.y - 0.4f};
+        b2Vec2 origin = {botPos.x + (patrolDirection * 0.3f), botPos.y - 0.4f};
 
-        b2Vec2 end = {botPos.x + (patrolDirection * 0.5f), botPos.y - 1.0f};
+        b2Vec2 end = {botPos.x + (patrolDirection * 0.3f), botPos.y - 1.0f};
 
 
         // 2. Define the configuration masks
@@ -304,25 +313,28 @@ namespace gl3 {
         if (!groundResult.didHit) {
             std::cout << "[DEBUG] Gap detected! Turning." << std::endl;
 
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
 
     bool SecBot::canReachPlayer() {
         // If you use -1 for "no floor", check against that.
         // Otherwise, just compare the IDs directly.
-        return (this->floorID == ship->getCurrentFloorId());
+        if ((this->floorID == ship->getCurrentFloorId()) && isGroundAhead) return true;
+        return false;
+
     }
 
 
 
 
     void SecBot::Freeze() {
-        isFrozen = true;
+        this->isFrozen = true;
         std::cout << isFrozen << std::endl;
         b2Body_SetLinearVelocity(body, b2Vec2_zero);
+
 
     }
 
@@ -330,9 +342,9 @@ namespace gl3 {
         this->isFrozen = false;
         // Wake up the body and give it a tiny nudge or
         // re-trigger your patrol velocity logic
+
         b2Body_SetAwake(this->body, true);
     }
-
 
 
 

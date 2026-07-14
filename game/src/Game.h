@@ -13,6 +13,7 @@
 #include <map>
 
 
+#include "soloud_wavstream.h"
 #include "levels/Scene.h"
 #include "Sprite.h"
 #
@@ -31,7 +32,8 @@ namespace gl3 {
             Paused,
             GameOver,
             Playing,
-            MainMenu
+            MainMenu,
+            Ending
         };
     public:
         Game(int width, int height, const std::string &title);
@@ -55,10 +57,20 @@ namespace gl3 {
         // Define the PTM Ratio as a public constant
         // Based on your 720p window and zoom=2.0f, the ratio is 180:1
         static constexpr float PTM_RATIO = 100.0f;
+        bool getIsResetting() { return isResetting; }
+        bool isShipValid();
+        void InitAudio();
+        void PlayMusic(SoLoud::WavStream& music, float volume = 0.7f);
+        void StopMusic();
+        void StopSFX(SoLoud::handle handle);
+        SoLoud::handle PlaySfxWithHandle(SoLoud::Wav& sfx, float volume = 1.0f);
+        void PlaySfx(SoLoud::Wav& sfx, float volume = 1.0f);
+        SoLoud::Soloud& getAudio() { return audio; }
 
         void requestSceneSwitch(int ID);
         void switchScene (int ID);
         void setGoalReached(bool reachedGoal) {goalReached = reachedGoal;};
+        SoLoud::WavStream& Game::getMusicForLevel(int levelID);
 
 
         void ShapesStartTouching(b2ShapeId shape_idA, b2ShapeId shape_idB);
@@ -66,7 +78,44 @@ namespace gl3 {
         void SensorStartsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
         void SensorStopsSensing(b2ShapeId sensorShapeId, b2ShapeId visitorShapeId);
 
+        SoLoud::Wav& getBotStunSFX() {return botStun;}
+        SoLoud::Wav& getOpenVentSFX() {return openVent;}
+        SoLoud::Wav& getFlipSwitchSFX() {return flipSwitch;}
+        SoLoud::Wav& getPipeLandSFX() {return pipeLand;}
+        SoLoud::Wav& getBoxPushPullSFX() {return boxPush_Pull;}
+        SoLoud::Wav& getDoorOpenCloseSFX() {return doorOpen_Close;}
+        SoLoud::Wav& getPlayerSpottedSFX() {return playerSpotted;}
+        SoLoud::Wav& getPipeRotatedSFX() {return pipeRotated;}
+        SoLoud::Wav& getLaserFiredSFX() {return laserFired;}
+        SoLoud::Wav& getLaserGuyHitSFX() {return laserGuyHit;}
+        SoLoud::Wav& getDogWalkSFX() {return dogWalk;}
+        SoLoud::Wav& getpickUpStick() {return pickUpStick;}
+
+
     private:
+        bool gameOverSoundPlayed = false;
+        SoLoud::Soloud audio;
+        SoLoud::WavStream menuMusic;
+        SoLoud::WavStream levelMusic;
+        SoLoud::WavStream levelMusic2;
+        SoLoud::WavStream levelMusic3;
+        SoLoud::WavStream gameOverMusic;
+        SoLoud::WavStream gameEndingMusic;
+        SoLoud::Wav botStun;
+        SoLoud::Wav openVent;
+        SoLoud::Wav flipSwitch;
+        SoLoud::Wav pipeLand;
+        SoLoud::Wav boxPush_Pull;
+        SoLoud::Wav doorOpen_Close;
+        SoLoud::Wav playerSpotted;
+        SoLoud::Wav pipeRotated;
+        SoLoud::Wav laserFired;
+        SoLoud::Wav laserGuyHit;
+        SoLoud::Wav dogWalk;
+        SoLoud::Wav pickUpStick;
+        SoLoud::Wav gameOver;
+        SoLoud::handle currentMusicHandle = 0;
+        bool isResetting = false;
         bool isGameOver = false;
         bool rKeyWasPressed = false;
         float endGameTimer = 0.0f;
@@ -112,7 +161,7 @@ namespace gl3 {
         int idToLoad = 0;
         bool levelLoaded = false;
         bool oneWasPressed = false;
-        SoLoud::Soloud audio;
+
         std::unique_ptr<SoLoud::Wav> backgroundMusic;
         float lastFrameTime = 1.0f/60;
         float deltaTime = 1.0f/60;

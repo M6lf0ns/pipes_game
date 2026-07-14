@@ -30,14 +30,19 @@ namespace gl3 {
 
 
     protected:
+
+        SoLoud::handle laserSoundHandle = 0;
         void createPhysicsBody() override;
         private:
         float HalfHeight;
         float HalfWidth;
 
     private:
+        bool deathSoundPlayed = false;
         std::vector<float> segmentRotations; // Stores the rotation for every Turn
         std::vector<glm::vec2> segmentDirections;
+        // In your Raycast logic:
+        std::vector<MirrorCube*> segmentMirrorCubes; // New vector
         bool isWall = false;
         bool isDying = false;
         float deathTimer = 0.0f;
@@ -55,6 +60,7 @@ namespace gl3 {
         std::vector<bool> outboundMirrors;
         std::vector<bool> returnMirrors;
 
+        bool hittingFloor = false;
         float startAngle;
         int debugBodyDrawCount = 0;
         // Inside LaserGuy.h
@@ -67,15 +73,18 @@ namespace gl3 {
         MirrorInteraction currentInteraction = MirrorInteraction::None;
         float stateTimer = 0.0f;
         int animFrame = 0;          // Which frame index are we currently showing?
+        int guyAnimFrame = 0;
         float animTimer = 0.0f;     // Tracks time passed *within* the current frame
         const float frameDuration = 0.1f; // How long each frame stays on screen (0.1s = 10 FPS)
         const int totalLaserFrames = 6;   // Let's assume your laser animation has 4 frames
+        const int totalGuyFrames = 5;
         // Configuration Intervals (Adjust these to balance your level!)
         const float idleDuration = 3.0f;   // How long he waits between shots
         const float firingDuration = 2.0f; // How long the beam stays active
         float maxLaserRange = 15.0f;
         bool beamHitSomething = false;
         bool isParallelToMirror = false;
+
 
         float laserThickness = 0.2f;
         float headWidth = 0.4f;
@@ -97,6 +106,8 @@ namespace gl3 {
 
 
 
+        std::vector<GLuint> laserGuyShootingFrames;
+        GLuint idleTexture;
 
         // Animation arrays (4 frames each)
         std::vector<GLuint> headFrames;
@@ -104,6 +115,8 @@ namespace gl3 {
         std::vector<GLuint> tailFrames;
         std::vector<GLuint> edgeFrames;
         glm::vec2 currentHitPoint{0.0f, 0.0f};
+
+        Floor* floor = nullptr;
     };
 
 }

@@ -1,6 +1,8 @@
 #pragma once
 #include "Entity.h"
 #include "Floor.h"
+#include "soloud.h"
+#include "Vent.h"
 #include "../Sprite.h"
 #include "box2d/collision.h"
 
@@ -38,6 +40,9 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        SoLoud::Soloud audio;
+        bool landSoundPlayed = false;
+        bool wasTeleporting = false;
         int floorID;
         bool isVisible = true;
         Dog* dawg = nullptr;
@@ -55,6 +60,8 @@ namespace gl3 {
         std::vector<glm::vec3> trajectoryPoints;
         unsigned int vao, vbo;
         Floor* floor = nullptr;
+        Vent* exitVent = nullptr;
+        Vent* entryVent = nullptr;
 
 
 

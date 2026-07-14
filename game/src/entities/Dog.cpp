@@ -39,6 +39,12 @@ namespace gl3 {
 
 
     void Dog::update(Game *game, float deltaTime) {
+        // At the very top of Dog::update
+        if (enVent != nullptr && !b2Body_IsValid(enVent->getBody())) {
+            // If the vent was deleted by the Scene, drop the pointer immediately!
+            enVent = nullptr;
+            exVent = nullptr;
+        }
         if (enVent != nullptr) {
             // If the pointer exists, verify it's still a valid memory object
             // For example, check if its Type is still correct
@@ -49,40 +55,61 @@ namespace gl3 {
         }
         // std::cout << "EXVENT " << exVent << std::endl;
         // std::cout << "ENVENT " << enVent << std::endl;
+        SoLoud::handle h;
         if (isWalking) {
             animTimer += deltaTime;
             if (animTimer >= 0.05f) {
                 // Your frame speed
                 animTimer = 0.0f;
                 animFrame = (animFrame + 1) % walkingFrames.size();
-
+                if (animFrame == 0 || animFrame == 2) {
+                    game->getAudio().stop(walkSoundHandle); // stop previous
+                    walkSoundHandle = game->PlaySfxWithHandle(game->getDogWalkSFX());
+                    game->getAudio().setRelativePlaySpeed(walkSoundHandle, 1.5f);
+                }
                 // HERE is the assignment!
                 this->sprite->setTexture(walkingFrames[animFrame]);
                 Entity::update(game, deltaTime);
             }
         } else {
             this->sprite->setTexture(idleTexture);
+            game->getAudio().stop(walkSoundHandle);
             Entity::update(game, deltaTime);
         }
         // std::cout << "FLOOR ID IS OF DOG " << this->getFloorID() << std::endl;
 
+        // std::cout <<"ENTRY VENT  " << this->getEntryVent();
+        // std::cout << "EXIT VENT   " << this->getExitVent();
 
     if (this->stickHasLanded) {
 
+
+
+        float stopThreshold = 0.06f;
+        // std::cout <<"ENTRY VENT  " << this->getEntryVent();
+        // std::cout << "EXIT VENT   " << this->getExitVent();
         // if (enVent == nullptr) {
         //     std::cout << "ENTRY VENT NOT RECEIVED" << std::endl;
         // }
         // if (exVent == nullptr) {
         //     std::cout << "EX VENT NOT RECEIVED" << std::endl;
         // }
-        bool onWrongFloor = this->getFloorID() != targetFloorID;
+        onWrongFloor = this->getFloorID() != targetFloorID;
         // 1. ALWAYS CHECK TELEPORTATION FIRST
 
+        if (onWrongFloor && enVent != nullptr && enVent->getIsOpen() && stickInVent) {
+            targetLocation = enVent->getPosition();
+        }
 
-        if (enVent && exVent && enVent->getIsOpen()) {
+
+
+        if (enVent != nullptr && exVent != nullptr && enVent->getIsOpen() && !stickWasThrown) {
+
+
+
             std::cout << "WE ARE REACHING TELEPORTATION CODE" << std::endl;
             float distance = glm::distance(enVent->getPosition().x, this->getPosition().x);
-            float maxAllowedDist = 0.01f;
+            float maxAllowedDist = 0.07f;
 
             if (distance <= maxAllowedDist) {
                 glm::vec3 exVentPos = exVent->getPosition();
@@ -91,46 +118,59 @@ namespace gl3 {
                 b2Body_SetTransform(body, {exVentPos.x, exVentPos.y}, b2MakeRot(0.0f));
                 this->position = exVentPos;
 
-                // Shut down state variables cleanly
-                this->stickHasLanded = false;
-                b2Body_SetLinearVelocity(body, b2Vec2_zero);
-
                 // this->setEntryVent(nullptr);
                 // this->setExitVent(nullptr);
+                this->stickWasThrown = false; // Reset this so the dog stops "thinking" about the throw
+                setTargetLocation(this->getPosition());
+                b2Body_SetLinearVelocity(body, b2Vec2_zero);
+
+
                 isWalking = false;
+                // Shut down state variables cleanly
+                this->setDogHasTeleported(true);
+                this->stickHasLanded = false;
+                this->stickInVent = false;
+
+
                 return; // Exit completely so no movement calculations happen!
             }
+
         }
 
+        if (enVent != nullptr && targetLocation == enVent->getPosition()) {
+            std::cout << "ENVENT AND TARGETLOCATION EQUAL " <<  std::endl;
 
-        // 2. MOVEMENT CALCULATIONS ONLY RUN IF WE DID NOT TELEPORT
-        b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
-        float dist = std::abs(targetLocation.x - position.x);
-        float stopThreshold = 0.05f;
-        float direction = (targetLocation.x  > position.x) ? 1.0f : -1.0f;
-
-        // std::cout << "DOG POS: " << position.x
-        //           << " | TARGET: " << targetLocation
-        //           << " | DIST: " << dist
-        //           << " | VEL: " << currentVel.x << std::endl;
-
-        if (dist < stopThreshold) {
-            b2Body_SetLinearVelocity(body, b2Vec2_zero);
-            isWalking = false;
-            // this->sprite = idleSprite;
         }
         else {
-
-            b2Body_SetLinearVelocity(body, {static_cast<float>(0.6f * direction), currentVel.y});
-            if (direction > 0.0f) {
-                sprite->setScale(glm::vec3(abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
-            }
-            else {
-                sprite->setScale(glm::vec3(-abs(sprite->getScale().x), sprite->getScale().y, sprite->getScale().z));
-            }
-            isWalking = true;
+            std:: cout << "TARGETLOCATION IS NOT ENVENTS LOCATION " << std::endl;
         }
 
+        std::cout << "DOG LOCATION " << this->position.x << " " << this->position.y << std::endl;
+        std::cout << "TARGET LOCATION " << targetLocation.x << " " << targetLocation.y << std::endl;
+        // 2. MOVEMENT CALCULATIONS ONLY RUN IF WE DID NOT TELEPORT
+        b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
+        float dist = std::abs(targetLocation.x - this->position.x);
+
+        float direction = (targetLocation.x  > position.x) ? 1.0f : -1.0f;
+
+        if (dist > stopThreshold) {
+            // Only update direction if we aren't "vibrating" at an edge
+            if (std::abs(currentVel.x) > 0.05f) {
+                direction = (targetLocation.x > position.x) ? 1.0f : -1.0f;
+            }
+
+            // Apply the locked direction
+            b2Body_SetLinearVelocity(body, {static_cast<float>(0.6f * direction), currentVel.y});
+
+            // Flip sprite based on the locked direction
+            float scaleX = std::abs(sprite->getScale().x);
+            sprite->setScale(glm::vec3(direction > 0 ? scaleX : -scaleX, sprite->getScale().y, sprite->getScale().z));
+            isWalking = true;
+        } else {
+            // We are at the target
+            b2Body_SetLinearVelocity(body, {0.0f, currentVel.y});
+            isWalking = false;
+        }
 
         b2Body_SetAwake(body, true);
     }
@@ -186,11 +226,12 @@ namespace gl3 {
 
 
     void Dog::startContact(Entity* other) {
-        if (other) {
-            std::cout << "[DOG COLLISION] Hit an entity of type: "
-                      << static_cast<int>(other->getType())
-                      << " at position X: " << other->getPosition().x << std::endl;
+        if (other && other->getType() == EntityType::Floor) {
+            floor = dynamic_cast<Floor*>(other);
+            this->setFloorID(floor->getFloorID());
         }
+
+
     }
 
 

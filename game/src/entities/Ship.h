@@ -60,6 +60,7 @@ namespace gl3 {
         int getCurrentFloorId () { return floorID; }
         float getDirection() {return direction;}
         void kill(Game* game);
+        ~Ship() override;
 
 
 
@@ -67,6 +68,11 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        PlayerState previousState = PlayerState::idle;
+        SoLoud::handle pickUpStickHandle;
+        float coyoteTimer = 0.0f;
+        float coyoteTime = 0.1f; // seconds of grace period
+        bool isGrounded = false; // Add this
         glm::vec3 playerPos;
         b2ShapeId shape;
         bool canClimb = false;
@@ -77,7 +83,6 @@ namespace gl3 {
         float playerVelX;
         float playerHalfHeight;
         float playerHalfWidth;
-        bool isGrounded = false;
         int groundContacts = 0;
         bool isDead = false;
         bool holdingDown = false;
@@ -114,7 +119,7 @@ namespace gl3 {
 
 
         PlayerState currentState = PlayerState::idle;
-        PlayerState previousState;
+
         bool ismoving = false;
 
 

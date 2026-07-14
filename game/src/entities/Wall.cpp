@@ -35,6 +35,7 @@ namespace gl3 {
 
             wallShapeDef.enableContactEvents = true;
             shape = b2CreatePolygonShape(body, &wallShapeDef, &boxGeometry);
+            b2Shape_SetFriction(shape, 0.0f);
             b2Shape_SetUserData(shape, this);
         }
     };

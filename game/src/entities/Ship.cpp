@@ -80,15 +80,20 @@ namespace gl3 {
         continuousSpeedFrames.push_back(Texture::LoadTexture("assets/textures/Continuous_Speed_6.png"));
         continuousSpeedFrames.push_back(Texture::LoadTexture("assets/textures/Continuous_Speed_7.png"));
 
-        audio.init();
-        audio.setGlobalVolume(0.1f);
-        firingSound.load(resolveAssetPath("audio/shot.mp3").string().c_str());
-        firingSound.setSingleInstance(true);
         Ship::createPhysicsBody();
     }
 
     void Ship::update(Game *game, float deltaTime) {
         auto window = game->getWindow();
+
+        Entity::update(game, deltaTime);
+        // 1. ABSOLUTE SICHERHEIT: Prüfe, ob das Game resettet
+        if (game->getIsResetting()) return;
+
+        // 2. Prüfe auf Validität
+        if (!game->isShipValid()) return;
+
+
 
         b2Vec2 shipPos = b2Body_GetPosition(body);
         // std::cout << "[SHIP] pos=(" << shipPos.x << "," << shipPos.y
@@ -96,8 +101,14 @@ namespace gl3 {
 
 
         vel = b2Body_GetLinearVelocity(body); //get current velocity
+        // In update, before canJump:
+        if (coyoteTimer > 0.0f) {
+            coyoteTimer -= deltaTime;
+            isGrounded = true;
+        }
 
-        bool canJump = (abs(vel.y) < 0.1f); // effectively zero
+        bool canJump = isGrounded && (abs(vel.y) < 0.3f);
+
         // --- START: NEW MOVEMENT AND SPRINT SYSTEM ---
 
         animTimer += deltaTime;
@@ -220,10 +231,11 @@ namespace gl3 {
                 currentState = PlayerState::idle;
             }
         }
+        // std::cout << "CURRENTSTATE IS " <<  (int)currentState << std::endl;
 
 
         // Constants (Used only in this block)
-        const float SPRINT_SPEED = 2.0f;
+        const float SPRINT_SPEED = 1.7f;
         const float NORMAL_SPEED = 1.3f;
         const float PROPORTIONAL_GAIN = 30.0f; // Tweak this for snappiness
 
@@ -358,13 +370,16 @@ namespace gl3 {
             b2Body_SetGravityScale(body, 0.0f);
             b2Shape_SetFriction(shape, 0.0f);
             // 1. Calculate the bottom Y-threshold (where the ladder ends)
-            float floorTop = currentFloor->getPosition().y + currentFloor->getScale().y / 2.0f;
-            bool isAtFloor = std::abs(feetY - floorTop) < 0.2f; // Close enough
+            float floorTop = 0.0f;
+            if (currentFloor != nullptr) {
+                floorTop = currentFloor->getPosition().y + currentFloor->getScale().y / 2.0f;
+            }
+            bool isAtFloor = (currentFloor != nullptr) && std::abs(feetY - floorTop) < 0.2f;
             float ladderBottom = currentLadder->getPosition().y - (currentLadder->getScale().y / 2.0f);
 
-            std::cout << "FeetY: " << feetY << " | FloorTop: " << floorTop << " | isClimbing: " << isClimbing << std::endl;
-
-            std::cout << "LADDER BOTTOM: " << ladderBottom << std::endl;
+            // std::cout << "FeetY: " << feetY << " | FloorTop: " << floorTop << " | isClimbing: " << isClimbing << std::endl;
+            //
+            // std::cout << "LADDER BOTTOM: " << ladderBottom << std::endl;
             if (feetY > ladderTop && vel.y > 0.1f) {
                 isClimbing = false;
                 // 1. Kill all momentum FIRST
@@ -398,6 +413,7 @@ namespace gl3 {
                 // MOVEMENT KEYS
                 // MOVEMENT KEYS
                 currentState = PlayerState::climbingLadder;
+
 
                 // Change vel.y to b2Body_SetLinearVelocity(body, {vel.x, targetY});
                 float targetY = 0.0f;
@@ -433,7 +449,7 @@ namespace gl3 {
                     if (abs(playertobox) <= 0.3f) {
                         if (boxIsToLeft || boxIsToRight) {
                             if (isStableEnoughToClimb) {
-                                if (position.y < playerHalfHeight + boxHeight) {
+                                if (position.y < playerHalfHeight + boxHeight - 0.1f) {
                                     std::cout << "--- ALL GATES PASSED ---" << std::endl;
                                     currentState = PlayerState::climbingBox;
                                     animFrame = 0;
@@ -459,10 +475,10 @@ namespace gl3 {
                 std::cout  << "IS BOX TO LEFT " << boxIsToLeft << std::endl;
                 std::cout << "IS BOX TO RIGHT " << boxIsToRight << std::endl;
                 std::cout << "IS BOX DATA VALID "  << isBoxDataValid << std::endl;
-                bool condition = position.y < playerHalfHeight + boxHeight;
+                bool condition = position.y < playerHalfHeight + boxHeight - 0.1f;
                 std::cout << "is condition true " << condition << std::endl;
                 std::cout << "is it stable enough to climg " << isStableEnoughToClimb << std::endl;
-                if (isBoxDataValid && abs(playertobox) <= 0.5f && (boxIsToLeft || boxIsToRight) && isStableEnoughToClimb && position.y < playerHalfHeight + boxHeight ) {
+                if (isBoxDataValid && abs(playertobox) <= 0.5f && (boxIsToLeft || boxIsToRight) && isStableEnoughToClimb && position.y < playerHalfHeight + boxHeight -0.1f ) {
                     currentState = PlayerState::climbingBox;
                     animFrame = 0;
                     animTimer = 0.0f;
@@ -500,14 +516,23 @@ namespace gl3 {
             }
             bool isEPressed = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS);
             if (isEPressed && !E_wasPressed) {
-                // CASE 1: We are already holding the stick -> Drop it immediately!
-                if (myStick->getIsFollowingPlayer() && !correspVent) {
-                    std::cout << "MANUALLY DROPPING STICK" << std::endl;
-                    myStick->dropStick(position, direction);
+                // 1. Calculate how far we are from the vent
+                float distToVent = 100.0f; // Default far away
+                if (correspVent != nullptr) {
+                    distToVent = glm::distance(this->position, correspVent->getPosition());
+                }
+
+                // 2. Check if we are holding the stick, the vent is open, AND we are close
+                if (myStick->getIsFollowingPlayer() && correspVent && correspVent->getIsOpen() && distToVent < 0.5f && !correspVent->getIsExit()) {
+                    std::cout << "TELEPORTING STICK THROUGH VENT" << std::endl;
+                    myStick->teleport(game, correspVent->getConnectedTwin()->getPosition());
                     isPickedUp = false;
                 }
-                else if (correspVent && correspVent->getIsOpen() && isPickedUp) {
-                    myStick->teleport(game, correspVent->getConnectedTwin()->getPosition());
+                // 3. ONLY drop if we aren't at an open vent
+                else if (myStick->getIsFollowingPlayer()) {
+                    std::cout << "MANUALLY DROPPING STICK" << std::endl;
+                    myStick->dropStick(position, direction);
+
                     isPickedUp = false;
                 }
                 // CASE 2: The stick is on the ground -> Check distance mathematically
@@ -523,6 +548,8 @@ namespace gl3 {
 
                         std::cout << "PICKING UP STICK (Distance Check Passed: " << currentDistance << ")" << std::endl;
                         myStick->pickUpStick(game, position, direction);
+                        SoLoud::handle h = game->PlaySfxWithHandle(game->getpickUpStick());
+                        game->getAudio().setRelativePlaySpeed(h, 1.0f); // tune this value
                     } else {
                         std::cout << "Too far away to pick up! Distance: " << currentDistance << std::endl;
                     }
@@ -570,20 +597,17 @@ namespace gl3 {
         bool isFPressed = (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS);
         bool triggerF = (isFPressed && !F_wasPressed);
 
-        // --- F KEY: WORLD INTERACTION (Vents, Switches) ---
         if (triggerF) {
             // Priority 1: Open/Close Vent
             if (correspVent != nullptr) {
-                std::cout << "TOGGLING VENT" << std::endl;
-                correspVent->Open(); // Or your toggle function
+                correspVent->Open();
+                game->PlaySfx(game->getOpenVentSFX());
             }
-            // Priority 2: Pipe Switch
+            // Priority 2: Pipe Switch - CHANGED
             else if (currentPipeSwitch != nullptr) {
-                correspMirrorCube = currentPipeSwitch->getTargetCube();
-                float nextAngle = std::fmod(correspMirrorCube->getPipeRotation() + 45.0f, 360.0f);
-                correspMirrorCube->rotatePipe(nextAngle);
+                currentPipeSwitch->flipSwitch(game);
             }
-            // Priority 3: Speaker Switch
+            // Priority 3: Speaker Switch - UNCHANGED
             else if (currentSpeakerSwitch != nullptr) {
                 currentSpeakerSwitch->flipSwitch();
             }
@@ -593,42 +617,6 @@ namespace gl3 {
             F_wasPressed = false;
         }
 
-
-
-
-
-
-        // // bool isRPressed = (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS);
-        //
-        // if (currentPipeSwitch != nullptr) {
-        //     correspMirrorCube = currentPipeSwitch->getTargetCube();
-        //     // std::cout << "DEBUG: Attempting to rotate cube at address: " << currentPipeSwitch << std::endl;
-        //     // Add the safety check here
-        //     if (correspMirrorCube != nullptr && isEPressed && !this->E_wasPressed) {
-        //         float currentAngle = correspMirrorCube->getPipeRotation();
-        //         float nextAngle = std::fmod(currentAngle + 45.0f, 360.0f);
-        //
-        //         // ONE call, let the MirrorCube handle the sprite/Box2D transform
-        //         correspMirrorCube->rotatePipe(nextAngle);
-        //
-        //         std::cout << "[ROTATION] New Angle: " << nextAngle << std::endl;
-        //     }
-        //
-        //     // Track the key state across frames globally at the very end of update
-        //     this->E_wasPressed = isEPressed;
-        // }
-        // else {
-        //     std::cout << "PIPESWITCH NOT ASSIGNED!!" << std::endl;
-        // }
-        // --- FINAL STEP: CRITICAL ---
-        // // This MUST be the last line of update()
-        // if (currentState != PlayerState::climbingBox && !isClimbing) {
-        //     b2Vec2 currentVel = b2Body_GetLinearVelocity(body);
-        //
-        //     // Only force the X velocity for movement,
-        //     // leave Y velocity alone so gravity and jumps can work
-        //     b2Body_SetLinearVelocity(body, {vel.x, currentVel.y});
-        // }
     }
 
     void Ship::createPhysicsBody() {
@@ -669,7 +657,8 @@ namespace gl3 {
                                    gl3::PhysicsCategories::CATEGORY_STICK |
                                    gl3::PhysicsCategories::CATEGORY_RAY_SENSOR |
                                        // gl3::PhysicsCategories::CATEGORY_MIRROR_PIPE |
-                                           gl3::PhysicsCategories::CATEGORY_GOAL_SENSOR;
+                                           gl3::PhysicsCategories::CATEGORY_GOAL_SENSOR |
+                                               gl3::PhysicsCategories::CATEGORY_TUTORIAL_SIGN;
 
 
         shape = b2CreatePolygonShape(body, &shapeDef, &box);
@@ -743,27 +732,41 @@ namespace gl3 {
        }
     }
 
-    void Ship::startContact(Entity *other) {
-        if (other) {
-            if (other->getType() == EntityType::Floor) {
-
-                Floor* f = dynamic_cast<Floor*>(other);
-
-                // Only update if the object's top is below our center
-                // or specifically at our feet
-                if (f->getPosition().y < this->getPosition().y) {
-                    currentFloor = f;
-                    floorID = currentFloor->getFloorID();
-                    std::cout << "[SHIP SHIP] floorID: " << floorID << std::endl;
-                }
+    void Ship::startContact(Entity* other) {
+        if (other->getType() == EntityType::Floor) {
+            Floor* f = dynamic_cast<Floor*>(other);
+            if (f->getPosition().y < this->getPosition().y) {
+                currentFloor = f;
+                floorID = currentFloor->getFloorID();
+                isGrounded = true;
             }
-
+        }
+        else if (other->getType() == EntityType::Box) {
+            // only count as ground if box is below us
+            if (other->getPosition().y < this->getPosition().y) {
+                isGrounded = true;
+            }
+        }
+        else if(other->getType() == EntityType::Wall) {
+            isGrounded = false;
         }
     }
 
-    void Ship::endContact(Entity *other) {
+    void Ship::endContact(Entity* other) {
+        if (other->getType() == EntityType::Floor || other->getType() == EntityType::Box) {
+            coyoteTimer = 0.1f; // 100ms grace period
+            // Don't set isOnGround = false here - let the timer do it
+        }
+        else if(other->getType() == EntityType::Wall) {
+            coyoteTimer = 0.1f;
+        }
 
     }
+
+    Ship::~Ship() {
+        std::cout << "[SHIP SHIP] cleaning up." << std::endl;
+    }
+
 
 
     void Ship::kill(Game *game) {

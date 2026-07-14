@@ -30,6 +30,8 @@ namespace gl3 {
         void createPhysicsBody() override;
 
     private:
+        float soundCooldown = 0.0f;
+        const float SFX_DURATION = 1.0f; // Set this to the length of your push sound in seconds
         float playerToBoxX;
         Ship* activePlayer = nullptr; // Store the actual player touching the box
         float halfWidth = 0.0f, halfHeight = 0.0f;
