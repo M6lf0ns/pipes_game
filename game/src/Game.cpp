@@ -4,17 +4,11 @@
 #include <random>
 #include <iostream>
 #include "Assets.h"
-#include "physics/ContactListener.h"
 #include "box2d/box2d.h"
 #include "entities/Box.h"
-#include "entities/Door.h"
-#include "entities/Floor.h"
 #include "glm/gtx/string_cast.hpp"
 #include "rendering/Texture.h"
 #include "rendering/Shader.h"
-#include "entities/Floor.h"
-#include "entities/SecBot.h"
-#include "entities/Stick.h"
 #include "entities/Switch.h"
 #include <algorithm> //required for sort
 #include <fstream>

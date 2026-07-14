@@ -4,14 +4,11 @@
 #include "Entity.h"
 #include <soloud.h>
 #include <soloud_wav.h>
-
 #include "Ladder.h"
 #include "MirrorCube.h"
 #include "PipeSwitch.h"
-#include "Missile.h"
 #include "SpeakerSwitch.h"
 #include "box2d/math_functions.h"
-#include "box2d/src/shape.h"
 #include "../rendering/Texture.h"
 #include "Stick.h"
 #include "Vent.h"
