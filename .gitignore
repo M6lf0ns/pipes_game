@@ -1,7 +1,9 @@
 # ============ #
 # OS generated #
 # ============ #
-
+cmake-build-debug
+cmake-build-release
+**/docs/out
 *.DS_Store
 *.DS_Store?
 *._*
