@@ -19,6 +19,8 @@
 #
 
 namespace gl3 {
+    /** * @brief The core Game class that handles the engine loop, physics, and scene management.
+    */
     class Game {
         enum Layers {
             BACKGROUND = -10,
