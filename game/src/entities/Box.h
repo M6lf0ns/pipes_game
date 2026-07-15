@@ -17,10 +17,7 @@ namespace gl3 {
         void endContact(Entity* other) override;
         [[nodiscard]] float GetHalfHeight() const;
         [[nodiscard]] float GetHalfWidth() const;
-        //void DebugDraw();
-        // [[nodiscard]] EntityType getType() const override {
-        //     return EntityType::Box;
-        // }
+
 
 
 

@@ -11,9 +11,6 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Ship.cpp
         src/entities/Ship.h
         src/Assets.h
-        src/entities/Missile.cpp
-        src/entities/Missile.h
-        src/physics/ContactListener.h
         src/Sprite.cpp
         src/Sprite.h
         src/rendering/Texture.cpp
@@ -27,8 +24,6 @@ set(SOURCE_FILES src/main.cpp
         src/entities/Switch.h
         src/entities/Door.cpp
         src/entities/Door.h
-        src/ResourceManager.cpp
-        src/ResourceManager.h
         src/entities/SecBot.cpp
         src/entities/SecBot.h
         src/PhysicsCategories.h
