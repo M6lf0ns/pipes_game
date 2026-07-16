@@ -37,9 +37,9 @@ RepositoryRoot/
     ├── report/             // PDF
     └── trailer/            // .mp4 (final trailer, no raw material)
 ```
-##Trailer 
+## Trailer 
 
-Used sounds:
+# Used sounds:
 
 19 Sniff.wav Link:
 https://freesound.org/people/Alshred/sounds/403773/
@@ -50,9 +50,9 @@ https://freesound.org/people/jawbutch/sounds/344407/
 crab walking Link:
 https://freesound.org/people/stuniverso/sounds/761559/
 
-##Used Assets in Game
+## Used Assets in Game
 
-Sounds effects:
+# Sounds effects:
 
 Hint,Clue,Trace,01.wav Link:
 
@@ -104,7 +104,7 @@ misson failed Link:
 
 https://freesound.org/people/buffsatan/sounds/760731/
 
-Music:
+# Music:
 
 Factory ambiance Link:
 
@@ -115,17 +115,17 @@ Ambient/loading screen game music Pack Link:
 https://opengameart.org/content/ambientloading-screen-game-music-pack
 
 
-##Hardware Requirements
+## Hardware Requirements
 
 PC, Keyboard, Mouse, Audio output device
 
-##How to execute game:
+## How to execute game:
 
 1. Extract files from zip-file
 2. Open the "Pipes" executable
 
 
-##How to compile project:
+## How to compile project:
 
 1. You can clone the code with this command:
 
