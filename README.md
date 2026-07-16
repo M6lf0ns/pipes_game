@@ -1,6 +1,3 @@
-`Please edit this README to fit your project and keep it up-to-date with your concept.`
-
-`All final deliverables (code, executable game, report, trailer and poster) have to be committed, tagged as final and pushed to your GitLab repository.`
 
 # GameLab Project Repository
 
@@ -41,46 +38,80 @@ RepositoryRoot/
     └── trailer/            // .mp4 (final trailer, no raw material)
 ```
 ##Trailer 
+
 Used sounds:
+
 19 Sniff.wav Link:
 https://freesound.org/people/Alshred/sounds/403773/
+
 Male Gasp 1.wav Link:
 https://freesound.org/people/jawbutch/sounds/344407/
+
 crab walking Link:
 https://freesound.org/people/stuniverso/sounds/761559/
 
 ##Used Assets in Game
+
 Sounds effects:
+
 Hint,Clue,Trace,01.wav Link:
+
 https://freesound.org/people/LilMati/sounds/441266/
+
 Adding an item to inventory 2 Link:
+
 https://freesound.org/people/randbsoundbites/sounds/829806/
+
 Crowd.Yay.Applause.25ppl.Long.wav Link:
+
 https://freesound.org/people/jessepash/sounds/139973/
+
 crab walking Link:
+
 https://freesound.org/people/stuniverso/sounds/761559/
+
 Dropping Pipe on Hard Floor Link:
+
 https://freesound.org/people/whi1ter1ce/sounds/708061/
+
 Electricity Game Sound Pack:
+
 charge.wav
+
 hit.wav
+
 crackleelectricityloop.wav
+
 Link: https://opengameart.org/content/electricity-game-sound-pack
+
 Scrapes Link:
+
 https://opengameart.org/content/scrapes
+
 old elevator door Link:
+
 https://opengameart.org/content/old-elevator-door
+
 Metal Interactions Link:
+
 https://opengameart.org/content/metal-interactions
+
 Light Switch Turn On And Off SFX Link:
+
 https://opengameart.org/content/light-switch-turn-on-and-off-sfx-0
+
 misson failed Link:
+
 https://freesound.org/people/buffsatan/sounds/760731/
 
 Music:
+
 Factory ambiance Link:
+
 https://opengameart.org/content/factory-ambiance
+
 Ambient/loading screen game music Pack Link:
+
 https://opengameart.org/content/ambientloading-screen-game-music-pack
 
 
