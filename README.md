@@ -39,7 +39,7 @@ RepositoryRoot/
 ```
 ## Trailer 
 
-# Used sounds:
+### Used sounds:
 
 19 Sniff.wav Link:
 https://freesound.org/people/Alshred/sounds/403773/
@@ -52,7 +52,7 @@ https://freesound.org/people/stuniverso/sounds/761559/
 
 ## Used Assets in Game
 
-# Sounds effects:
+### Sounds effects:
 
 Hint,Clue,Trace,01.wav Link:
 
@@ -104,7 +104,7 @@ misson failed Link:
 
 https://freesound.org/people/buffsatan/sounds/760731/
 
-# Music:
+### Music:
 
 Factory ambiance Link:
 
