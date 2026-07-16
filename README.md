@@ -54,63 +54,63 @@ https://freesound.org/people/stuniverso/sounds/761559/
 
 ### Sounds effects:
 
-Hint,Clue,Trace,01.wav Link:
+- Hint,Clue,Trace,01.wav Link:
 
 https://freesound.org/people/LilMati/sounds/441266/
 
-Adding an item to inventory 2 Link:
+- Adding an item to inventory 2 Link:
 
 https://freesound.org/people/randbsoundbites/sounds/829806/
 
-Crowd.Yay.Applause.25ppl.Long.wav Link:
+- Crowd.Yay.Applause.25ppl.Long.wav Link:
 
 https://freesound.org/people/jessepash/sounds/139973/
 
-crab walking Link:
+- crab walking Link:
 
 https://freesound.org/people/stuniverso/sounds/761559/
 
-Dropping Pipe on Hard Floor Link:
+- Dropping Pipe on Hard Floor Link:
 
 https://freesound.org/people/whi1ter1ce/sounds/708061/
 
-Electricity Game Sound Pack:
+- Electricity Game Sound Pack:
 
-charge.wav
+- charge.wav
 
-hit.wav
+- hit.wav
 
-crackleelectricityloop.wav
+- crackleelectricityloop.wav
 
 Link: https://opengameart.org/content/electricity-game-sound-pack
 
-Scrapes Link:
+- Scrapes Link:
 
 https://opengameart.org/content/scrapes
 
-old elevator door Link:
+- old elevator door Link:
 
 https://opengameart.org/content/old-elevator-door
 
-Metal Interactions Link:
+- Metal Interactions Link:
 
 https://opengameart.org/content/metal-interactions
 
-Light Switch Turn On And Off SFX Link:
+- Light Switch Turn On And Off SFX Link:
 
 https://opengameart.org/content/light-switch-turn-on-and-off-sfx-0
 
-misson failed Link:
+- mission failed Link:
 
 https://freesound.org/people/buffsatan/sounds/760731/
 
 ### Music:
 
-Factory ambiance Link:
+- Factory ambiance Link:
 
 https://opengameart.org/content/factory-ambiance
 
-Ambient/loading screen game music Pack Link:
+- Ambient/loading screen game music Pack Link:
 
 https://opengameart.org/content/ambientloading-screen-game-music-pack
 
