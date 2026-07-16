@@ -50,6 +50,17 @@ https://freesound.org/people/jawbutch/sounds/344407/
 - crab walking Link:
 https://freesound.org/people/stuniverso/sounds/761559/
 
+## External Tools and Libraries
+
+- Box2D: https://box2d.org/
+- glad: https://glad.dav1d.de/
+- glfw: https://www.glfw.org/
+- glm: https://glm.g-truc.net/0.9.9/index.html
+- stb_image: https://github.com/nothings/stb/blob/master/stb_image.h
+- Google Gemini: https://gemini.google.com/ (used for C++ troubleshooting and documentation)
+
+
+
 ## Used Assets in Game
 
 ### Sounds effects:
