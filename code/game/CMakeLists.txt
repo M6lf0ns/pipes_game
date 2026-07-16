@@ -34,8 +34,8 @@ set(SOURCE_FILES src/main.cpp
         src/levels/Scene.cpp
         src/levels/Scene.h
         src/entities/entities.h
-        src/entities/ladder.cpp
-        src/entities/ladder.h
+        src/entities/Ladder.cpp
+        src/entities/Ladder.h
         src/entities/Speaker.cpp
         src/entities/Speaker.h
         src/entities/SpeakerSwitch.cpp
