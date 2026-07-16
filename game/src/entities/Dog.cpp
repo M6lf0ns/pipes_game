@@ -53,8 +53,7 @@ namespace gl3 {
                 enVent = nullptr; // Reset to clean state
             }
         }
-        // std::cout << "EXVENT " << exVent << std::endl;
-        // std::cout << "ENVENT " << enVent << std::endl;
+
         SoLoud::handle h;
         if (isWalking) {
             animTimer += deltaTime;
@@ -76,24 +75,14 @@ namespace gl3 {
             game->getAudio().stop(walkSoundHandle);
             Entity::update(game, deltaTime);
         }
-        // std::cout << "FLOOR ID IS OF DOG " << this->getFloorID() << std::endl;
 
-        // std::cout <<"ENTRY VENT  " << this->getEntryVent();
-        // std::cout << "EXIT VENT   " << this->getExitVent();
 
     if (this->stickHasLanded) {
 
 
 
         float stopThreshold = 0.06f;
-        // std::cout <<"ENTRY VENT  " << this->getEntryVent();
-        // std::cout << "EXIT VENT   " << this->getExitVent();
-        // if (enVent == nullptr) {
-        //     std::cout << "ENTRY VENT NOT RECEIVED" << std::endl;
-        // }
-        // if (exVent == nullptr) {
-        //     std::cout << "EX VENT NOT RECEIVED" << std::endl;
-        // }
+
         onWrongFloor = this->getFloorID() != targetFloorID;
         // 1. ALWAYS CHECK TELEPORTATION FIRST
 
@@ -118,8 +107,6 @@ namespace gl3 {
                 b2Body_SetTransform(body, {exVentPos.x, exVentPos.y}, b2MakeRot(0.0f));
                 this->position = exVentPos;
 
-                // this->setEntryVent(nullptr);
-                // this->setExitVent(nullptr);
                 this->stickWasThrown = false; // Reset this so the dog stops "thinking" about the throw
                 setTargetLocation(this->getPosition());
                 b2Body_SetLinearVelocity(body, b2Vec2_zero);
