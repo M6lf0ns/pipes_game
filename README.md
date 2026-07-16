@@ -9,7 +9,7 @@
 | Target Platform(s) | `Windows`                                                                                      |
 | Start Date | 21.10.2025                                                                                     |
 | Study Program | Games Engineering B.Sc.                                                                        |
-| Engine Version | Unity 2021.3.11f1 or Unreal 5.0.3                                                              |
+| Engine Version | OpenGL                                                                                         |
 
 ### Abstract
 
