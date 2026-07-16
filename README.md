@@ -41,13 +41,13 @@ RepositoryRoot/
 
 ### Used sounds:
 
-19 Sniff.wav Link:
+- 19 Sniff.wav Link:
 https://freesound.org/people/Alshred/sounds/403773/
 
-Male Gasp 1.wav Link:
+- Male Gasp 1.wav Link:
 https://freesound.org/people/jawbutch/sounds/344407/
 
-crab walking Link:
+- crab walking Link:
 https://freesound.org/people/stuniverso/sounds/761559/
 
 ## Used Assets in Game
