@@ -11,7 +11,7 @@ add_subdirectory(extern/glm)
 
 add_subdirectory(extern/box2d)
 
-add_subdirectory(game)
+add_subdirectory(code/game)
 
 add_subdirectory(extern/soloud)
 

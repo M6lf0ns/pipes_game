@@ -27,8 +27,8 @@ RepositoryRoot/
     ├── builds/             // Archives (.zip) of built executables of your projects
     │                       //  including (non-standard) dependencies
     ├── code/
-    │   ├── engine/         // Place your project folder(s) here
-    │   ├── my-game-1/      // No un-used folders, no "archived" folders
+    │   ├── game/         // Place your project folder(s) here
+    │   │   ├── src/      // Place your game-specific folders here
     │   ├── CMakeLists.txt  // e.g. if using CMake, this can be your project root
     │   └── ...
     ├── documentation/      // GL2/3 - Each project requires FULL documentation  
