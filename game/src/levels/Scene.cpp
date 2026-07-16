@@ -335,12 +335,10 @@ namespace gl3 {
 
 
             for (int i = 0; i < sensorEvents.beginCount; ++i) {
-                std::cout << "ARE WE EVEN DOING ANYTHING????" << std::endl;
                 b2SensorBeginTouchEvent *beginEvent = sensorEvents.beginEvents + i;
                 if (!b2Shape_IsValid(beginEvent->sensorShapeId)) continue;
                 if (!b2Shape_IsValid(beginEvent->visitorShapeId)) continue;
 
-                std::cout << "BEFORE CALLING SENSORSSTARTSENSING" << std::endl;
                 std::cout << sensorEvents.beginCount << std::endl;
                 game->SensorStartsSensing(beginEvent->sensorShapeId, beginEvent->visitorShapeId);
             }

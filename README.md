@@ -16,9 +16,8 @@
 
 ### Abstract
 
-Life after humanity is hard, as the only sentient being left on earth you are forced to solve puzzles trying to escape the factory that was supposed to take your consciousness, while mindless, fellow robots try to stop you. Will you succeed? 
+Life after humanity is hard, as the only sentient being left on earth you are forced to solve puzzles to try to escape the factory that was supposed to take your consciousness, while mindless, fellow robots try to stop you. Will you succeed? 
 
-`--- 8< --- READ, THEN REPLACE WITH CUSTOM CONTENT BELOW HERE --- 8< ---`
 
 ## Repository Usage Guides
 
@@ -41,7 +40,49 @@ RepositoryRoot/
     ├── report/             // PDF
     └── trailer/            // .mp4 (final trailer, no raw material)
 ```
-##Trailer
+##Trailer 
+Used sounds:
+19 Sniff.wav Link:
+https://freesound.org/people/Alshred/sounds/403773/
+Male Gasp 1.wav Link:
+https://freesound.org/people/jawbutch/sounds/344407/
+crab walking Link:
+https://freesound.org/people/stuniverso/sounds/761559/
+
+##Used Assets in Game
+Sounds effects:
+Hint,Clue,Trace,01.wav Link:
+https://freesound.org/people/LilMati/sounds/441266/
+Adding an item to inventory 2 Link:
+https://freesound.org/people/randbsoundbites/sounds/829806/
+Crowd.Yay.Applause.25ppl.Long.wav Link:
+https://freesound.org/people/jessepash/sounds/139973/
+crab walking Link:
+https://freesound.org/people/stuniverso/sounds/761559/
+Dropping Pipe on Hard Floor Link:
+https://freesound.org/people/whi1ter1ce/sounds/708061/
+Electricity Game Sound Pack:
+charge.wav
+hit.wav
+crackleelectricityloop.wav
+Link: https://opengameart.org/content/electricity-game-sound-pack
+Scrapes Link:
+https://opengameart.org/content/scrapes
+old elevator door Link:
+https://opengameart.org/content/old-elevator-door
+Metal Interactions Link:
+https://opengameart.org/content/metal-interactions
+Light Switch Turn On And Off SFX Link:
+https://opengameart.org/content/light-switch-turn-on-and-off-sfx-0
+misson failed Link:
+https://freesound.org/people/buffsatan/sounds/760731/
+
+Music:
+Factory ambiance Link:
+https://opengameart.org/content/factory-ambiance
+Ambient/loading screen game music Pack Link:
+https://opengameart.org/content/ambientloading-screen-game-music-pack
+
 
 ##Hardware Requirements
 
@@ -52,50 +93,17 @@ PC, Keyboard, Mouse, Audio output device
 1. Extract files from zip-file
 2. Open the "Pipes" executable
 
-##Used Assets
 
+##How to compile project:
 
+1. You can clone the code with this command:
 
-``
-### Project and Source Control
+git clone --recursive --depth 1 https://gitlab2.informatik.uni-wuerzburg.de/GE/Teaching/gl3/projects/2025/22-gl3-alfonso-rodriguez.git
 
-Read more about Git in the [Atlassian Git Tutorials](https://de.atlassian.com/git).
+2. Once cloned, you can open the root folder in CLion. And load the `CMAKEList.txt` file
 
-#### Avoiding Clutter with .gitignore
-Gitignore files allow to exclude certain patterns from being versioned.
-This is necessary to avoid unnecessary (and possibly harmful) cluttering of your repository.
-Especially the automatically generated project and cache files of VisualStudio, Unity, or Unreal projects should be ignored.
+3. In CLion go to Settings->Build,Execution,Deployment->Toolchanins add the Microsoft Visual Studio Compiler (2019 or 2022) and hit Apply
 
-You can find [a selection of *.gitignore* files publicly available on GitHub](https://github.com/github/gitignore).
+4. You should now have a running configuration -> compile the code and have fun!
 
-##### Quick Check if .gitignore is working
-
-Your *.gitignore* is not correctly set up, if
-* your repository contains Folders such as `Library`, `DerivedDataCache` or `Saved`
-* `cache` files, `visual studio` project files etc. are `shown as modified` before commiting with your git client
-
-In this case, check your setup.
-Be aware that *.gitignore* is the actual, required filename!
-
-#### Versioning Binary Assets with Git LFS and .gitattributes
-Gitattribute files define file types to be handled through the Git Large File Storage (Git LFS) System.
-This system does not handle binary files, such as assets, images, meshes, etc. well.
-Even minimal changes add the whole file to the projects history.
-Git LFS identifies iterations of binary files using a hash in the repository, but stores the actual binary data transparently in a seperate data silo.
-
-To let Git LFS track a certain file (e.g. recursively all *.jpg*), execute this command:
-
-	> git lfs track *.jpg
-
-This command creates the following entry in the *.gitattributes* file:
-
-	*.jpg filter=lfs diff=lfs merge=lfs -text
-
-Git LFS is installed on all Workstations in E37 and the GameLabs.
-For your private computer, you can [download Git LFS here](https://git-lfs.github.com/).
-
-#### Further Reading: 
-* [Epic on Git for Unreal](https://wiki.unrealengine.com/Git_source_control_(Tutorial)#Workarounds_for_dealing_with_binary_files_on_your_Git_repository)
-* [GitLFS](https://www.git-lfs.com)
-* [Git](https://www.git-scm.com)
 

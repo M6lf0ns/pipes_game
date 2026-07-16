@@ -111,11 +111,9 @@ namespace gl3 {
             float targetX = ship->getPosition().x;
 
             // SMOOTHING: Move 10% of the distance each frame
-            // This makes it feel professional, not like a locked-on camera
             cameraX += (targetX - cameraX) * 0.1f;
 
             // CLAMPING: Prevent it from showing the "void"
-            // Adjust 0.0f and 20.0f to match your level boundaries
             cameraX = std::clamp(cameraX, 0.0f, 20.0f);
         }
         float cameraY = 1.0f;
@@ -181,10 +179,8 @@ namespace gl3 {
                 currentScene->updatePhysics(deltaTime);
             }
 
-            // ALWAYS DRAW! Move this outside the scene check block
             draw();
 
-            // --- THE SAFE ZONE ---
             if (pendingLevelID != -1 && !levelLoaded) {
                 switchScene(pendingLevelID);
                 idToLoad = pendingLevelID;
@@ -225,7 +221,6 @@ namespace gl3 {
         bool justPressedESC = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
 
         if (justPressedESC) {
-            // ONLY trigger the switch on the FIRST frame the key goes down
             if (!ESCWasPressed) {
                 if (currentState == GameState::MainMenu || currentState == GameState::Paused || currentState == GameState::GameOver) {
                     std::cout << "[GAME] Exiting from Main Menu!" << std::endl;
@@ -258,10 +253,10 @@ namespace gl3 {
 
         if (!isShipValid()) {
             std::cout << "[GAME] Ship is invalid!" << std::endl;
-            // std::cout << "IS SHIP DEAD?" << ship->getIsDead() << std::endl;
+
         }
 
-        // std::cout << "IS THE GAME OVER RN? " <<  isGameOver << std::endl;
+
         if (ship != nullptr && ship->getIsDead()) {
             std::cout << "IDTOLOAD IS " << idToLoad << std::endl;
             isGameOver = true;
@@ -384,7 +379,6 @@ namespace gl3 {
         Entity* entityB = static_cast<Entity*>(b2Shape_GetUserData(shape_idB));
 
         if (entityA && entityB) {
-            // "A, you hit B" and "B, you hit A"
             entityA->startContact(entityB);
             entityB->startContact(entityA);
         }
@@ -394,7 +388,6 @@ namespace gl3 {
         Entity* entityB = static_cast<Entity*>(b2Shape_GetUserData(shape_idB));
 
         if (entityA && entityB) {
-            // "A, you hit B" and "B, you hit A"
             entityA->endContact(entityB);
             entityB->endContact(entityA);
         }
@@ -435,7 +428,6 @@ namespace gl3 {
 
         float zoom = 2.0f;
         // 3. UI Projection Matrix (Simple Orthographic)
-        // Matches your game's aspect ratio
         glm::mat4 projection = glm::ortho(-zoom * aspect, zoom * aspect, -zoom, zoom, -1.0f, 1.0f);
 
         return projection * view * model;
@@ -544,7 +536,7 @@ namespace gl3 {
         static gl3::Sprite* menuTextSprite = nullptr;
         std::string texturePath = (currentState == GameState::Paused)
                                   ? "assets/textures/pause_menu.png"
-                                  : "assets/textures/over.png"; // Load your Game Over texture here
+                                  : "assets/textures/over.png";
         // IMPORTANT: Reload/Update the texture if the state changed
         static std::string lastPath = "";
         if (menuTextSprite == nullptr || lastPath != texturePath) {
@@ -553,10 +545,7 @@ namespace gl3 {
             menuTextSprite = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), textTexID);
             lastPath = texturePath;
         }
-        // Optional: If you want to switch the texture dynamically when state changes:
-        // (If you don't do this, the first one loaded will stay)
-        // If you want it to switch, add:
-        // menuTextSprite->setTexture(Texture::LoadTexture(texturePath.c_str()));
+
 
         glm::vec3 textPos = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 textScale = glm::vec3(7.0f, 4.0f, 1.0f);
@@ -573,7 +562,7 @@ namespace gl3 {
     }
     else {
         // --- 5. NORMAL ACTIVE GAMEPLAY RENDERING BLOCK ---
-        glClearColor(0.4f, 0.5f, 0.6f, 1.0f); // darker purple
+        glClearColor(0.4f, 0.5f, 0.6f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 1. DRAW THE OVERLAY FIRST (It now acts as a 'tint' on the background)
@@ -591,7 +580,6 @@ namespace gl3 {
             bgOverlay = new gl3::Sprite(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(8.0f, 4.0f, 1.0f), 0);
         }
 
-        // Set black color with 0.3 alpha (30% darkness)
         bgOverlay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.55f));
 
         // Draw the overlay
