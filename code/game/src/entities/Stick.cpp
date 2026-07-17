@@ -45,9 +45,9 @@ namespace gl3 {
         // std::cout << "IS DAWG BEING SET??" << dawg << std::endl;
 
         // std::cout << "FLOOR ID OF STICK IS " << floorID << std::endl;
-        // if (dawg) {
-        //     dawg->setLocalStickFloorID(this->getFloorID());
-        // }
+        if (dawg) {
+            dawg->setLocalStickFloorID(this->getFloorID());
+        }
 
         if (isFollowingPlayer) {
             b2Body_SetLinearVelocity(body, {0.0f, 0.0f});
